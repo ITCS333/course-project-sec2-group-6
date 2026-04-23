@@ -1,2 +1,95 @@
+
 <!DOCTYPE html>
-<html lang="en"></html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Course Website - Home</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        .container { max-width: 400px; margin: 20px auto; }
+        input, button { width: 100%; padding: 8px; margin: 8px 0; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        .error { color: red; }
+        .success { color: green; }
+        nav a { margin-right: 15px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="src/resources/list.php">Resources</a>
+        <a href="src/weekly/list.php">Weekly</a>
+        <a href="src/assignments/list.php">Assignments</a>
+        <a href="src/discussion/topics.php">Discussion</a>
+        <span id="admin-link" style="display:none;"><a href="src/admin/users.php">Admin Panel</a></span>
+    </nav>
+
+    <div class="container">
+        <div id="login-form">
+            <h2>Login</h2>
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button id="login-btn">Login</button>
+            <div id="login-message"></div>
+        </div>
+
+        <div id="user-info" style="display:none;">
+            <h2>Welcome, <span id="user-name"></span>!</h2>
+            <p>Email: <span id="user-email"></span></p>
+            <p>Role: <span id="user-role"></span></p>
+            <button id="logout-btn">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendRequest(url, data) {
+            let res = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            return await res.json();
+        }
+
+        async function checkSession() {
+            let res = await fetch('src/auth/check_session.php');
+            let data = await res.json();
+            if (data.logged_in) {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('user-info').style.display = 'block';
+                document.getElementById('user-name').innerText = data.user.full_name || data.user.email;
+                document.getElementById('user-email').innerText = data.user.email;
+                document.getElementById('user-role').innerText = data.user.is_admin == 1 ? 'Admin' : 'Student';
+                if (data.user.is_admin == 1) {
+                    document.getElementById('admin-link').style.display = 'inline';
+                }
+            } else {
+                document.getElementById('login-form').style.display = 'block';
+                document.getElementById('user-info').style.display = 'none';
+            }
+        }
+
+        document.getElementById('login-btn').onclick = async function() {
+            let email = document.getElementById('login-email').value;
+            let password = document.getElementById('login-password').value;
+            let result = await sendRequest('src/auth/login.php', {email, password});
+            let msgDiv = document.getElementById('login-message');
+            if (result.success) {
+                msgDiv.className = 'success';
+                msgDiv.innerText = 'Login successful!';
+                checkSession();
+            } else {
+                msgDiv.className = 'error';
+                msgDiv.innerText = result.message || 'Login failed';
+            }
+        };
+
+        document.getElementById('logout-btn').onclick = async function() {
+            await fetch('src/auth/logout.php', {method: 'POST'});
+            window.location.reload();
+        };
+
+        checkSession();
+    </script>
+</body>
+</html>
