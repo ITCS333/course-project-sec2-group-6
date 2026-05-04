@@ -30,9 +30,9 @@ let topics = [];
 
 // --- Element Selections ---
 // TODO: Select the new-topic form by id 'new-topic-form'.
-
+const newTopicForm=document.getElementById("new-topic-form");
 // TODO: Select the topic list container by id 'topic-list-container'.
-
+const topicListContainer=document.getElementById("topic-list-container");
 // --- Functions ---
 
 /**
@@ -61,7 +61,18 @@ let topics = [];
  *   column name.
  */
 function createTopicArticle(topic) {
+  
   // ... your implementation here ...
+  const article=document.createElement("article");
+  article.innerHTML= `
+    <h3><a href="topic.html?id=${topic.id}">${topic.subject}</a></h3>
+    <footer>Posted by: ${topic.author} on ${topic.created_at}</footer>
+    <div>
+      <button class="edit-btn" data-id="${topic.id}">Edit</button>
+      <button class="delete-btn" data-id="${topic.id}">Delete</button>
+    </div>
+  `;
+  return article;
 }
 
 /**
@@ -75,6 +86,10 @@ function createTopicArticle(topic) {
  */
 function renderTopics() {
   // ... your implementation here ...
+  topicListContainer.innerHTML="";
+  topics.forEach(topic =>{
+    topicListContainer.appendChild(createTopicArticle(topic));
+  });
 }
 
 /**
@@ -98,7 +113,34 @@ function renderTopics() {
  */
 async function handleCreateTopic(event) {
   // ... your implementation here ...
-}
+  event.preventDefault();
+
+  const subject = document.getElementById('topic-subject').vaule;
+  const message=document.getElementById('topic-message').vaule;
+
+  const submitbtn= document.getElementById('create-topic');
+  if(submitbtn.dataset.editId)
+  {
+    await handleUpdateTopic(parseInt(submitBtn.dataset.editId), { subject, message });
+    submitBtn.textContent = "Create Topic";
+    delete submitBtn.dataset.editId;
+    newTopicForm.reset();
+    return;
+  }
+  const response = await fetch('./api/index.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subject, message, author: "Student" })
+  });
+
+  const result = await response.json();
+  if (result.success) {
+    topics.push({ id: result.id, subject, message, author: "Student", created_at: result.created_at });
+    renderTopics();
+    newTopicForm.reset();
+  }
+
+} 
 
 /**
  * TODO: Implement handleUpdateTopic (async).
