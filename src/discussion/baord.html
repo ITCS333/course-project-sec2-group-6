@@ -12,7 +12,7 @@
     <!-- TODO: Add the responsive 'viewport' meta tag. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- TODO: Add a title, e.g., "Discussion Board". -->
-    <title>Discussuin Board</title>
+    <title>Discussion Board</title>
     <!-- TODO: Link to your CSS framework or stylesheet. -->
 </head>
 <body>
@@ -40,12 +40,12 @@
                          - label 'for': "topic-subject"
                          - input 'id': "topic-subject", type="text", required -->
                     <label for="topic-subject">Topic Subject</label>
-                    <input id="topic-subject" type="text">
+                    <input id="topic-subject" type="text" required>
                     <!-- TODO: Add a 'label' and 'textarea' for the main message.
                          - label 'for': "topic-message"
                          - textarea 'id': "topic-message", rows="6", required -->
                     <label for="topic-message">Topic Subject</label>
-                    <textarea id="topic-message" name="message" rows="6"></textarea>
+                    <textarea id="topic-message" name="message" rows="6" required></textarea>
                     <!-- TODO: Add a 'button' to submit the form.
                          - id="create-topic", type="submit", Text: "Create Topic" -->
                     <button id="create-topic" type="submit">Create Topic</button>
@@ -72,7 +72,7 @@
                          - The link's 'href' can be "topic-detail.html" for now.
                          - The link text should be a dummy topic title, e.g., "Question about CSS Flexbox". -->
                     <h3>
-                        <a herf="topic-detail.html">Question about CSS Flexbox</a>
+                        <a href="topic-detail.html">Question about CSS Flexbox</a>
                     </h3>
                     <!-- TODO: Use a 'footer' element for metadata. -->
                     <footer>
