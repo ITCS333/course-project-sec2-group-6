@@ -27,8 +27,8 @@ const passwordInput = document.getElementById('password');
 // Select the message container element by its ID
 const messageContainer = document.getElementById('message-container');
 
-// Function to display messages (error or success)
-function displayMessage(message, isError = true) {
+// Helper function to display messages
+function showMessage(message, isError = true) {
     if (messageContainer) {
         messageContainer.textContent = message;
         messageContainer.style.color = isError ? '#d32f2f' : '#2e7d32';
@@ -40,18 +40,18 @@ function displayMessage(message, isError = true) {
 // Add submit event listener to the form
 if (loginForm) {
     loginForm.addEventListener('submit', function(event) {
-        // Clear previous messages
+        // Clear any previous message
         if (messageContainer) messageContainer.textContent = '';
 
         // Get trimmed values
         const email = emailInput ? emailInput.value.trim() : '';
-        const password = passwordInput ? passwordInput.value.trim() : '';
+        const password = passwordInput ? passwordInput.value : '';
 
         // Validation flags
         let isValid = true;
         let errorMessage = '';
 
-        // Validate email: not empty and basic email format
+        // Email validation: not empty and basic email format
         if (email === '') {
             isValid = false;
             errorMessage = 'Email address is required.';
@@ -59,7 +59,7 @@ if (loginForm) {
             isValid = false;
             errorMessage = 'Please enter a valid email address (e.g., name@domain.com).';
         }
-        // Validate password: not empty
+        // Password validation: not empty
         else if (password === '') {
             isValid = false;
             errorMessage = 'Password is required.';
@@ -68,10 +68,10 @@ if (loginForm) {
         // If invalid, prevent form submission and show error
         if (!isValid) {
             event.preventDefault();
-            displayMessage(errorMessage, true);
+            showMessage(errorMessage, true);
         } else {
-            // Optional: show success message before form submits
-            displayMessage('Logging in...', false);
+            // Optional success message (will be replaced after actual submission)
+            showMessage('Logging in...', false);
             // The form will now submit to the server for actual authentication
         }
     });
