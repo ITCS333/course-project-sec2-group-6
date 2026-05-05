@@ -61,17 +61,36 @@ const topicListContainer=document.getElementById("topic-list-container");
  *   column name.
  */
 function createTopicArticle(topic) {
-  
   // ... your implementation here ...
-  const article=document.createElement("article");
-  article.innerHTML= `
-    <h3><a href="topic.html?id=${topic.id}">${topic.subject}</a></h3>
-    <footer>Posted by: ${topic.author} on ${topic.created_at}</footer>
-    <div>
-      <button class="edit-btn" data-id="${topic.id}">Edit</button>
-      <button class="delete-btn" data-id="${topic.id}">Delete</button>
-    </div>
-  `;
+  const article = document.createElement("article");
+  const h3 = document.createElement("h3");
+  const link = document.createElement("a");
+  link.href = `topic.html?id=${topic.id}`;
+  link.textContent = topic.subject;
+  h3.appendChild(link);
+ 
+  const footer = document.createElement("footer");
+  footer.textContent = `Posted by: ${topic.author} on ${topic.created_at}`;
+ 
+  const buttonsDiv = document.createElement("div");
+  
+  const editBtn = document.createElement("button");
+  editBtn.className = "edit-btn";
+  editBtn.setAttribute("data-id", topic.id);
+  editBtn.textContent = "Edit";
+ 
+  const deleteBtn=document.createElement("button");
+  deleteBtn.className="delete-btn";
+  deleteBtn.setAttribute("data-id", topic.id);
+  deleteBtn.textContent="Delete";
+ 
+  buttonsDiv.appendChild(editBtn);
+  buttonsDiv.appendChild(deleteBtn);
+ 
+  article.appendChild(h3);
+  article.appendChild(footer);
+  article.appendChild(buttonsDiv);
+ 
   return article;
 }
 
@@ -87,9 +106,12 @@ function createTopicArticle(topic) {
 function renderTopics() {
   // ... your implementation here ...
   topicListContainer.innerHTML="";
+
   topics.forEach(topic =>{
-    topicListContainer.appendChild(createTopicArticle(topic));
+  const article=createTopicArticle(topic);
+  topicListContainer.appendChild(article);
   });
+  
 }
 
 /**
@@ -114,32 +136,46 @@ function renderTopics() {
 async function handleCreateTopic(event) {
   // ... your implementation here ...
   event.preventDefault();
-
-  const subject = document.getElementById('topic-subject').vaule;
-  const message=document.getElementById('topic-message').vaule;
-
-  const submitbtn= document.getElementById('create-topic');
-  if(submitbtn.dataset.editId)
-  {
-    await handleUpdateTopic(parseInt(submitBtn.dataset.editId), { subject, message });
-    submitBtn.textContent = "Create Topic";
-    delete submitBtn.dataset.editId;
-    newTopicForm.reset();
-    return;
+  const subject = document.getElementById("topic-subject").value;
+  const message = document.getElementById("topic-message").value;
+ 
+  try {
+    
+    const response = await fetch("./api/index.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        subject: subject,
+        message: message,
+        author: "Student"
+      })
+    });
+ 
+    const result = await response.json();
+ 
+    if (result.success === true) {
+      
+      const newTopic = {
+        id: result.id,
+        subject: subject,
+        message: message,
+        author: "Student",
+        created_at: result.created_at
+      };
+      topics.push(newTopic);
+ 
+      renderTopics();
+ 
+    
+      newTopicForm.reset();
+    } else {
+      console.error("Failed to create topic:", result);
+    }
+  } catch (error) {
+    console.error("Error creating topic:", error);
   }
-  const response = await fetch('./api/index.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ subject, message, author: "Student" })
-  });
-
-  const result = await response.json();
-  if (result.success) {
-    topics.push({ id: result.id, subject, message, author: "Student", created_at: result.created_at });
-    renderTopics();
-    newTopicForm.reset();
-  }
-
 } 
 
 /**
@@ -158,6 +194,39 @@ async function handleCreateTopic(event) {
  */
 async function handleUpdateTopic(id, fields) {
   // ... your implementation here ...
+  try {
+    
+    const response = await fetch("./api/index.php", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        id: id,
+        subject: fields.subject,
+        message: fields.message
+      })
+    });
+ 
+    const result = await response.json();
+ 
+    
+    if (result.success === true) {
+      
+      const topicIndex = topics.findIndex(topic => topic.id === id);
+      if (topicIndex !== -1) {
+        topics[topicIndex].subject = fields.subject;
+        topics[topicIndex].message = fields.message;
+      }
+ 
+    
+      renderTopics();
+    } else {
+      console.error("Failed to update topic:", result);
+    }
+  } catch (error) {
+    console.error("Error updating topic:", error);
+  }
 }
 
 /**
@@ -180,6 +249,54 @@ async function handleUpdateTopic(id, fields) {
  */
 async function handleTopicListClick(event) {
   // ... your implementation here ...
+  const createTopicBtn = document.getElementById("create-topic");
+ 
+  if (event.target.classList.contains("delete-btn")) {
+    const id = parseInt(event.target.dataset.id);
+ 
+    try {
+      
+      const response = await fetch(`./api/index.php?id=${id}`, {
+        method: "DELETE"
+      });
+ 
+      const result = await response.json();
+ 
+      
+      if (result.success === true) {
+        
+        topics = topics.filter(topic => topic.id !== id);
+ 
+        
+        renderTopics();
+      } else {
+        console.error("Failed to delete topic:", result);
+      }
+    } catch (error) {
+      console.error("Error deleting topic:", error);
+    }
+  }
+ 
+  
+  if (event.target.classList.contains("edit-btn")) {
+    const id = parseInt(event.target.dataset.id);
+ 
+    
+    const topic = topics.find(t => t.id === id);
+ 
+    if (topic) {
+      
+      document.getElementById("topic-subject").value = topic.subject;
+      document.getElementById("topic-message").value = topic.message;
+ 
+      
+      createTopicBtn.textContent = "Update Topic";
+      createTopicBtn.setAttribute("data-edit-id", id);
+ 
+      
+      newTopicForm.scrollIntoView({ behavior: "smooth" });
+    }
+  }
 }
 
 /**
@@ -197,6 +314,21 @@ async function handleTopicListClick(event) {
  */
 async function loadAndInitialize() {
   // ... your implementation here ...
+  try {
+    const response  =await fetch("./api/index.php");
+    const result = await response.jason();
+
+    if(result.success === true){
+      topics=result.data;
+    }
+
+    renderTopics();
+
+    newTopicForm.addEventListener("submmit", handleTopicListClick);
+  }
+  catch(error){
+    console.error("Error loading topics ", error);
+  }
 }
 
 // --- Initial Page Load ---
