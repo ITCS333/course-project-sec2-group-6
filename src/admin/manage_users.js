@@ -1,113 +1,200 @@
-<?php
+let users = [];
 
-session_start();
+const userTableBody = document.getElementById("user-table-body");
+const addUserForm = document.getElementById("add-user-form");
+const passwordForm = document.getElementById("password-form");
+const searchInput = document.getElementById("search-input");
+const tableHeaders = document.querySelectorAll("#user-table thead th");
 
-header("Content-Type: application/json");
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+function createUserRow(user) {
+    const tr = document.createElement("tr");
 
-// handle preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
+    tr.innerHTML = `
+        <td>${user.name}</td>
+        <td>${user.email}</td>
+        <td>${user.is_admin == 1 ? "Yes" : "No"}</td>
+        <td>
+            <button class="edit-btn" data-id="${user.id}">Edit</button>
+            <button class="delete-btn" data-id="${user.id}">Delete</button>
+        </td>
+    `;
+
+    return tr;
 }
 
-// allow only POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode([
-        "success" => false,
-        "message" => "Method not allowed"
-    ]);
-    exit;
+function renderTable(userArray) {
+    userTableBody.innerHTML = "";
+    userArray.forEach(user => {
+        userTableBody.appendChild(createUserRow(user));
+    });
 }
 
-require_once "db.php"; // فيه getDBConnection()
+async function handleChangePassword(event) {
+    event.preventDefault();
 
-try {
+    const current_password = document.getElementById("current-password").value;
+    const new_password = document.getElementById("new-password").value;
+    const confirm_password = document.getElementById("confirm-password").value;
 
-    $pdo = getDBConnection();
-
-    // read input
-    $input = json_decode(file_get_contents("php://input"), true);
-
-    if (!isset($input['email']) || !isset($input['password'])) {
-        http_response_code(400);
-        echo json_encode([
-            "success" => false,
-            "message" => "Missing email or password"
-        ]);
-        exit;
+    if (new_password !== confirm_password) {
+        alert("Passwords do not match.");
+        return;
     }
 
-    $email = trim($input['email']);
-    $password = $input['password'];
-
-    // validation
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        http_response_code(400);
-        echo json_encode([
-            "success" => false,
-            "message" => "Invalid email format"
-        ]);
-        exit;
+    if (new_password.length < 8) {
+        alert("Password must be at least 8 characters.");
+        return;
     }
 
-    if (strlen($password) < 8) {
-        http_response_code(400);
-        echo json_encode([
-            "success" => false,
-            "message" => "Password too short"
-        ]);
-        exit;
+    const res = await fetch("../api/index.php?action=change_password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            id: 1,
+            current_password,
+            new_password
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+        alert("Password updated successfully!");
+        passwordForm.reset();
+    } else {
+        alert(data.message || "Error");
     }
-
-    // query user
-    $stmt = $pdo->prepare("SELECT id, name, email, password, is_admin FROM users WHERE email = ?");
-    $stmt->execute([$email]);
-
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$user || !password_verify($password, $user['password'])) {
-        http_response_code(401);
-        echo json_encode([
-            "success" => false,
-            "message" => "Invalid email or password"
-        ]);
-        exit;
-    }
-
-    // session
-    $_SESSION['user_id'] = $user['id'];
-    $_SESSION['user_name'] = $user['name'];
-    $_SESSION['user_email'] = $user['email'];
-    $_SESSION['is_admin'] = $user['is_admin'];
-    $_SESSION['logged_in'] = true;
-
-    // success response
-    echo json_encode([
-        "success" => true,
-        "message" => "Login successful",
-        "user" => [
-            "id" => $user['id'],
-            "name" => $user['name'],
-            "email" => $user['email'],
-            "is_admin" => $user['is_admin']
-        ]
-    ]);
-
-    exit;
-
-} catch (PDOException $e) {
-
-    error_log($e->getMessage());
-
-    http_response_code(500);
-    echo json_encode([
-        "success" => false,
-        "message" => "Server error"
-    ]);
-
-    exit;
 }
+
+async function handleAddUser(event) {
+    event.preventDefault();
+
+    const name = document.getElementById("user-name").value;
+    const email = document.getElementById("user-email").value;
+    const password = document.getElementById("default-password").value;
+    const is_admin = document.getElementById("is-admin").value;
+
+    if (!name || !email || !password) {
+        alert("Please fill out all required fields.");
+        return;
+    }
+
+    if (password.length < 8) {
+        alert("Password must be at least 8 characters.");
+        return;
+    }
+
+    const res = await fetch("../api/index.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, is_admin })
+    });
+
+    const data = await res.json();
+
+    if (res.status === 201 || data.success) {
+        await loadUsersAndInitialize();
+        addUserForm.reset();
+    } else {
+        alert(data.message || "Error");
+    }
+}
+
+async function handleTableClick(event) {
+    const id = event.target.dataset.id;
+
+    if (event.target.classList.contains("delete-btn")) {
+        const res = await fetch("../api/index.php?id=" + id, {
+            method: "DELETE"
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            users = users.filter(u => u.id != id);
+            renderTable(users);
+        } else {
+            alert(data.message || "Error");
+        }
+    }
+
+    if (event.target.classList.contains("edit-btn")) {
+        alert("Edit clicked for user " + id);
+    }
+}
+
+function handleSearch() {
+    const term = searchInput.value.toLowerCase();
+
+    if (!term) {
+        renderTable(users);
+        return;
+    }
+
+    const filtered = users.filter(u =>
+        u.name.toLowerCase().includes(term) ||
+        u.email.toLowerCase().includes(term)
+    );
+
+    renderTable(filtered);
+}
+
+function handleSort(event) {
+    const index = event.currentTarget.cellIndex;
+
+    let key = "";
+    if (index === 0) key = "name";
+    if (index === 1) key = "email";
+    if (index === 2) key = "is_admin";
+
+    let dir = event.currentTarget.dataset.sortDir || "asc";
+    dir = dir === "asc" ? "desc" : "asc";
+    event.currentTarget.dataset.sortDir = dir;
+
+    users.sort((a, b) => {
+        let valA = a[key];
+        let valB = b[key];
+
+        if (key === "is_admin") {
+            valA = Number(valA);
+            valB = Number(valB);
+        } else {
+            valA = valA.toString().toLowerCase();
+            valB = valB.toString().toLowerCase();
+            return dir === "asc"
+                ? valA.localeCompare(valB)
+                : valB.localeCompare(valA);
+        }
+
+        return dir === "asc" ? valA - valB : valB - valA;
+    });
+
+    renderTable(users);
+}
+
+async function loadUsersAndInitialize() {
+    const res = await fetch("../api/index.php");
+
+    if (!res.ok) {
+        alert("Failed to load users");
+        return;
+    }
+
+    const data = await res.json();
+
+    if (data.success) {
+        users = data.data;
+        renderTable(users);
+    }
+
+    addUserForm.addEventListener("submit", handleAddUser);
+    passwordForm.addEventListener("submit", handleChangePassword);
+    userTableBody.addEventListener("click", handleTableClick);
+    searchInput.addEventListener("input", handleSearch);
+
+    tableHeaders.forEach(th => {
+        th.addEventListener("click", handleSort);
+    });
+}
+
+loadUsersAndInitialize();
