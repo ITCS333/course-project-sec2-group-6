@@ -165,15 +165,13 @@
 
 
 // --- End of Script ---
-
-?>
 <?php
 session_start();
-
 header("Content-Type: application/json");
 
 require_once "../../config/db.php";
 
+// --- Check Request Method ---
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode([
         "success" => false,
@@ -182,6 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// --- Get POST Data ---
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (!isset($data['email']) || !isset($data['password'])) {
@@ -195,6 +194,7 @@ if (!isset($data['email']) || !isset($data['password'])) {
 $email = trim($data['email']);
 $password = $data['password'];
 
+// --- Validation ---
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     echo json_encode([
         "success" => false,
@@ -206,7 +206,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 if (strlen($password) < 8) {
     echo json_encode([
         "success" => false,
-        "message" => "Password too short"
+        "message" => "Password must be at least 8 characters"
     ]);
     exit;
 }
@@ -215,20 +215,23 @@ try {
 
     $db = getDBConnection();
 
-    $sql = "SELECT id, name, email, password, is_admin FROM users WHERE email = ?";
-    $stmt = $db->prepare($sql);
+    // --- SQL ---
+    $stmt = $db->prepare("SELECT id, name, email, password, is_admin FROM users WHERE email = ?");
     $stmt->execute([$email]);
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    // --- Check user + password ---
     if ($user && password_verify($password, $user['password'])) {
 
+        // --- Session ---
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['is_admin'] = $user['is_admin'];
         $_SESSION['logged_in'] = true;
 
+        // --- Success response ---
         echo json_encode([
             "success" => true,
             "message" => "Login successful",
@@ -243,6 +246,7 @@ try {
         exit;
     }
 
+    // --- Failed login ---
     echo json_encode([
         "success" => false,
         "message" => "Invalid email or password"
