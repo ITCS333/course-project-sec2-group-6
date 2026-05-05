@@ -166,98 +166,111 @@
 
 // --- End of Script ---
 <?php
+
 session_start();
+
 header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
 
-require_once "../../config/db.php";
+// handle preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
-// --- Check Request Method ---
+// allow only POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
     echo json_encode([
         "success" => false,
-        "message" => "Invalid request method"
+        "message" => "Method not allowed"
     ]);
     exit;
 }
 
-// --- Get POST Data ---
-$data = json_decode(file_get_contents("php://input"), true);
-
-if (!isset($data['email']) || !isset($data['password'])) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Missing email or password"
-    ]);
-    exit;
-}
-
-$email = trim($data['email']);
-$password = $data['password'];
-
-// --- Validation ---
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Invalid email format"
-    ]);
-    exit;
-}
-
-if (strlen($password) < 8) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Password must be at least 8 characters"
-    ]);
-    exit;
-}
+require_once "db.php"; // فيه getDBConnection()
 
 try {
 
-    $db = getDBConnection();
+    $pdo = getDBConnection();
 
-    // --- SQL ---
-    $stmt = $db->prepare("SELECT id, name, email, password, is_admin FROM users WHERE email = ?");
+    // read input
+    $input = json_decode(file_get_contents("php://input"), true);
+
+    if (!isset($input['email']) || !isset($input['password'])) {
+        http_response_code(400);
+        echo json_encode([
+            "success" => false,
+            "message" => "Missing email or password"
+        ]);
+        exit;
+    }
+
+    $email = trim($input['email']);
+    $password = $input['password'];
+
+    // validation
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo json_encode([
+            "success" => false,
+            "message" => "Invalid email format"
+        ]);
+        exit;
+    }
+
+    if (strlen($password) < 8) {
+        http_response_code(400);
+        echo json_encode([
+            "success" => false,
+            "message" => "Password too short"
+        ]);
+        exit;
+    }
+
+    // query user
+    $stmt = $pdo->prepare("SELECT id, name, email, password, is_admin FROM users WHERE email = ?");
     $stmt->execute([$email]);
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // --- Check user + password ---
-    if ($user && password_verify($password, $user['password'])) {
-
-        // --- Session ---
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['user_name'] = $user['name'];
-        $_SESSION['user_email'] = $user['email'];
-        $_SESSION['is_admin'] = $user['is_admin'];
-        $_SESSION['logged_in'] = true;
-
-        // --- Success response ---
+    if (!$user || !password_verify($password, $user['password'])) {
+        http_response_code(401);
         echo json_encode([
-            "success" => true,
-            "message" => "Login successful",
-            "user" => [
-                "id" => $user['id'],
-                "name" => $user['name'],
-                "email" => $user['email'],
-                "is_admin" => $user['is_admin']
-            ]
+            "success" => false,
+            "message" => "Invalid email or password"
         ]);
-
         exit;
     }
 
-    // --- Failed login ---
+    // session
+    $_SESSION['user_id'] = $user['id'];
+    $_SESSION['user_name'] = $user['name'];
+    $_SESSION['user_email'] = $user['email'];
+    $_SESSION['is_admin'] = $user['is_admin'];
+    $_SESSION['logged_in'] = true;
+
+    // success response
     echo json_encode([
-        "success" => false,
-        "message" => "Invalid email or password"
+        "success" => true,
+        "message" => "Login successful",
+        "user" => [
+            "id" => $user['id'],
+            "name" => $user['name'],
+            "email" => $user['email'],
+            "is_admin" => $user['is_admin']
+        ]
     ]);
 
     exit;
 
 } catch (PDOException $e) {
 
-    error_log("DB Error: " . $e->getMessage());
+    error_log($e->getMessage());
 
+    http_response_code(500);
     echo json_encode([
         "success" => false,
         "message" => "Server error"
@@ -265,4 +278,3 @@ try {
 
     exit;
 }
-?>
