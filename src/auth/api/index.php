@@ -167,3 +167,98 @@
 // --- End of Script ---
 
 ?>
+<?php
+session_start();
+
+header("Content-Type: application/json");
+
+require_once "../../config/db.php";
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo json_encode([
+        "success" => false,
+        "message" => "Invalid request method"
+    ]);
+    exit;
+}
+
+$data = json_decode(file_get_contents("php://input"), true);
+
+if (!isset($data['email']) || !isset($data['password'])) {
+    echo json_encode([
+        "success" => false,
+        "message" => "Missing email or password"
+    ]);
+    exit;
+}
+
+$email = trim($data['email']);
+$password = $data['password'];
+
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    echo json_encode([
+        "success" => false,
+        "message" => "Invalid email format"
+    ]);
+    exit;
+}
+
+if (strlen($password) < 8) {
+    echo json_encode([
+        "success" => false,
+        "message" => "Password too short"
+    ]);
+    exit;
+}
+
+try {
+
+    $db = getDBConnection();
+
+    $sql = "SELECT id, name, email, password, is_admin FROM users WHERE email = ?";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([$email]);
+
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user && password_verify($password, $user['password'])) {
+
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_name'] = $user['name'];
+        $_SESSION['user_email'] = $user['email'];
+        $_SESSION['is_admin'] = $user['is_admin'];
+        $_SESSION['logged_in'] = true;
+
+        echo json_encode([
+            "success" => true,
+            "message" => "Login successful",
+            "user" => [
+                "id" => $user['id'],
+                "name" => $user['name'],
+                "email" => $user['email'],
+                "is_admin" => $user['is_admin']
+            ]
+        ]);
+
+        exit;
+    }
+
+    echo json_encode([
+        "success" => false,
+        "message" => "Invalid email or password"
+    ]);
+
+    exit;
+
+} catch (PDOException $e) {
+
+    error_log("DB Error: " . $e->getMessage());
+
+    echo json_encode([
+        "success" => false,
+        "message" => "Server error"
+    ]);
+
+    exit;
+}
+?>
