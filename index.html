@@ -1,47 +1,73 @@
 
 <!DOCTYPE html>
 <html lang="en">
-<html>
 <head>
-    <title>Course Website</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ITCS333 - Internet Software Development</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/index.html" class="nav-brand">ITCS333</a>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="/src/resources/index.php">Resources</a></li>
+                <li><a href="/src/weekly/index.php">Weekly</a></li>
+                <li><a href="/src/assignments/index.php">Assignments</a></li>
+                <li><a href="/src/discussion/index.php">Discussion</a></li>
+                <li id="authLinks"></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <div class="hero">
+        <div class="hero-content">
+            <h1>Internet Software Development</h1>
+            <p>ITCS333 - University of Bahrain</p>
+            <p>Learn modern web development with HTML, CSS, JavaScript, PHP, and MySQL.</p>
+            <div class="hero-buttons" id="heroButtons">
+                <a href="/src/auth/login.php" class="btn btn-primary">Login</a>
+                <a href="/src/auth/register.php" class="btn btn-secondary">Register</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="features container">
+        <h2>Course Features</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>📚 Course Resources</h3>
+                <p>Access all learning materials, documentation, and external links.</p>
+            </div>
+            <div class="feature-card">
+                <h3>📅 Weekly Breakdown</h3>
+                <p>Follow the weekly schedule with topics, readings, and activities.</p>
+            </div>
+            <div class="feature-card">
+                <h3>📝 Assignments</h3>
+                <p>Submit and track your coursework.</p>
+            </div>
+            <div class="feature-card">
+                <h3>💬 Discussion Board</h3>
+                <p>Engage with peers and instructors.</p>
+            </div>
+        </div>
+    </div>
 
-<h1>Welcome to ITCS333 Course Website</h1>
-
-<form id="loginForm">
-    <input type="email" id="email" placeholder="Email" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button type="submit">Login</button>
-</form>
-
-<p id="message"></p>
-
-<script>
-document.getElementById("loginForm").addEventListener("submit", function(e) {
-    e.preventDefault();
-
-    fetch("src/auth/login.php", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            email: document.getElementById("email").value,
-            password: document.getElementById("password").value
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            window.location.href = "dashboard.html";
-        } else {
-            document.getElementById("message").innerText = data.message;
-        }
-    });
-});
-</script>
-
+    <script>
+        fetch('/src/auth/check-session.php')
+            .then(res => res.json())
+            .then(data => {
+                const authLinks = document.getElementById('authLinks');
+                const heroButtons = document.getElementById('heroButtons');
+                if (data.loggedIn) {
+                    authLinks.innerHTML = `<li><span>Hi, ${data.user.name}</span></li><li><a href="/src/auth/logout.php" class="btn-logout">Logout</a></li>`;
+                    if (heroButtons) heroButtons.style.display = 'none';
+                } else {
+                    authLinks.innerHTML = `<li><a href="/src/auth/login.php">Login</a></li><li><a href="/src/auth/register.php">Register</a></li>`;
+                }
+            });
+    </script>
 </body>
-</html>
 </html>
