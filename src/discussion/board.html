@@ -11,7 +11,7 @@
      <meta charset="UTF-8">
     <!-- TODO: Add the responsive viewport <meta> tag
          (width=device-width, initial-scale=1.0). -->
-     <meta name="viewport" content="width=device-width", initial-scale="1.0">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- TODO: Add a <title>, e.g., "Discussion Board". -->
      <title>Discussion Board</title>
     <!-- TODO: Link to your CSS framework or stylesheet. -->
@@ -47,12 +47,12 @@
                          - label for="topic-subject"
                          - input id="topic-subject", type="text", required -->
                          <label for="topic-subject">Topic Subject</label>
-                         <input id="topic-subject" type="text", required>
+                         <input id="topic-subject" type="text" name="subject" required>
                     <!-- TODO: Add a <label> and <textarea> for the main message.
                          - label for="topic-message"
                          - textarea id="topic-message", rows="6", required -->
                          <label for="topic-message">Main message</label>
-                         <textarea id="topic-message" rows="6" required></textarea>
+                         <textarea id="topic-message" name="message" rows="6" required></textarea>
                     <!-- TODO: Add a submit <button>.
                          - id="create-topic", type="submit"
                          - Text: "Create Topic" -->
