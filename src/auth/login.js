@@ -1,61 +1,78 @@
-// --- Element Selections ---
-const loginForm = document.getElementById("login-form");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const messageContainer = document.getElementById("message-container");
+/*
+  Requirement: Add client-side validation to the login form.
 
-// --- Helper: show message ---
-function showMessage(message, isSuccess = false) {
-    messageContainer.textContent = message;
-    messageContainer.style.color = isSuccess ? "green" : "red";
+  Instructions:
+  1. This file is already linked to your HTML via a <script> tag with the 'defer' attribute
+     at the bottom of the <body> in login.html.
+  
+  2. In your login.html, a <div id="message-container"> has been added *after* the </fieldset>
+     but *before* the </form> closing tag. This div will be used to display success or error messages.
+  
+  3. Implement the JavaScript functionality as described in the TODO comments.
+*/
+
+// --- Element Selections ---
+// We can safely select elements here because 'defer' guarantees
+// the HTML document is parsed before this script runs.
+
+// Select the login form by its id "login-form"
+const loginForm = document.getElementById('login-form');
+
+// Select the email input element by its ID
+const emailInput = document.getElementById('email');
+
+// Select the password input element by its ID
+const passwordInput = document.getElementById('password');
+
+// Select the message container element by its ID
+const messageContainer = document.getElementById('message-container');
+
+// Function to display messages (error or success)
+function displayMessage(message, isError = true) {
+    if (messageContainer) {
+        messageContainer.textContent = message;
+        messageContainer.style.color = isError ? '#d32f2f' : '#2e7d32';
+        messageContainer.style.fontSize = '0.9rem';
+        messageContainer.style.marginTop = '0.5rem';
+    }
 }
 
-// --- Handle Login ---
-async function handleLogin(event) {
-    event.preventDefault();
+// Add submit event listener to the form
+if (loginForm) {
+    loginForm.addEventListener('submit', function(event) {
+        // Clear previous messages
+        if (messageContainer) messageContainer.textContent = '';
 
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+        // Get trimmed values
+        const email = emailInput ? emailInput.value.trim() : '';
+        const password = passwordInput ? passwordInput.value.trim() : '';
 
-    // --- Client-side validation ---
-    if (!email || !password) {
-        showMessage("Please fill in all fields");
-        return;
-    }
+        // Validation flags
+        let isValid = true;
+        let errorMessage = '';
 
-    if (!email.includes("@")) {
-        showMessage("Invalid email format");
-        return;
-    }
-
-    if (password.length < 8) {
-        showMessage("Password must be at least 8 characters");
-        return;
-    }
-
-    try {
-        const res = await fetch("../api/index.php", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ email, password })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-            showMessage("Login successful", true);
-            // ممكن تحويل الصفحة لاحقاً
-            // window.location.href = "dashboard.html";
-        } else {
-            showMessage(data.message || "Login failed");
+        // Validate email: not empty and basic email format
+        if (email === '') {
+            isValid = false;
+            errorMessage = 'Email address is required.';
+        } else if (!/^\S+@\S+\.\S+$/.test(email)) {
+            isValid = false;
+            errorMessage = 'Please enter a valid email address (e.g., name@domain.com).';
+        }
+        // Validate password: not empty
+        else if (password === '') {
+            isValid = false;
+            errorMessage = 'Password is required.';
         }
 
-    } catch (error) {
-        showMessage("Server error");
-    }
+        // If invalid, prevent form submission and show error
+        if (!isValid) {
+            event.preventDefault();
+            displayMessage(errorMessage, true);
+        } else {
+            // Optional: show success message before form submits
+            displayMessage('Logging in...', false);
+            // The form will now submit to the server for actual authentication
+        }
+    });
 }
-
-// --- Event Listener ---
-loginForm.addEventListener("submit", handleLogin);
