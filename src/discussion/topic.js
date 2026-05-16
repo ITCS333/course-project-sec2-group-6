@@ -150,7 +150,7 @@ function createReplyArticle(reply) {
  *    result to replyListContainer.
  */
 function renderReplies() {
-  r
+  
   replyListContainer.innerHTML = "";
  
 
@@ -328,7 +328,7 @@ async function initializePage() {
 
       renderOriginalPost(topic);
  
-      
+
       renderReplies();
  
 
