@@ -1,10 +1,10 @@
 /*
   Requirement: Populate the single topic page and manage replies.
-
+ 
   Instructions:
   1. This file is already linked to `topic.html` via:
          <script src="topic.js" defer></script>
-
+ 
   2. The following ids must exist in topic.html (already listed in the
      HTML comments):
        #topic-subject        — <h1>
@@ -14,9 +14,9 @@
        #reply-list-container — <div>
        #reply-form           — <form>
        #new-reply            — <textarea>
-
+ 
   3. Implement the TODOs below.
-
+ 
   API base URL: ./api/index.php
   Topic object shape returned by the API (from the topics table):
     {
@@ -26,7 +26,7 @@
       author:     string,
       created_at: string    // "YYYY-MM-DD HH:MM:SS"
     }
-
+ 
   Reply object shape returned by the API (from the replies table):
     {
       id:         number,   // integer primary key from the replies table
@@ -36,11 +36,11 @@
       created_at: string    // "YYYY-MM-DD HH:MM:SS"
     }
 */
-
+ 
 // --- Global Data Store ---
 let currentTopicId = null;
 let currentReplies = [];
-
+ 
 // --- Element Selections ---
 // TODO: Select each element by its id:
 //   topicSubject, opMessage, opFooter,
@@ -51,8 +51,9 @@ const opFooter = document.getElementById("op-footer");
 const replyListContainer = document.getElementById("reply-list-container");
 const replyForm = document.getElementById("reply-form");
 const newReplyText = document.getElementById("new-reply");
+ 
 // --- Functions ---
-
+ 
 /**
  * TODO: Implement getTopicIdFromURL.
  *
@@ -63,11 +64,11 @@ const newReplyText = document.getElementById("new-reply");
  *    the integer primary key of the topic).
  */
 function getTopicIdFromURL() {
-  // ... your implementation here ...
+
   const params = new URLSearchParams(window.location.search);
   return params.get("id");
 }
-
+ 
 /**
  * TODO: Implement renderOriginalPost.
  *
@@ -82,12 +83,12 @@ function getTopicIdFromURL() {
  *    (Note: use topic.created_at, which matches the SQL column name.)
  */
 function renderOriginalPost(topic) {
-  // ... your implementation here ...
-   topicSubject.textContent = topic.subject;
+
+  topicSubject.textContent = topic.subject;
   opMessage.textContent = topic.message;
   opFooter.textContent = `Posted by: ${topic.author} on ${topic.created_at}`;
 }
-
+ 
 /**
  * TODO: Implement createReplyArticle.
  *
@@ -108,23 +109,28 @@ function renderOriginalPost(topic) {
  * the SQL column name.
  */
 function createReplyArticle(reply) {
-  // ... your implementation here ...
+
   
   const article = document.createElement("article");
  
+  
   const p = document.createElement("p");
   p.textContent = reply.text;
+ 
   
   const footer = document.createElement("footer");
   footer.textContent = `Posted by: ${reply.author} on ${reply.created_at}`;
+ 
   
   const buttonsDiv = document.createElement("div");
+ 
   
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "delete-reply-btn";
   deleteBtn.setAttribute("data-id", reply.id);
   deleteBtn.textContent = "Delete";
  
+  
   buttonsDiv.appendChild(deleteBtn);
  
   article.appendChild(p);
@@ -133,7 +139,7 @@ function createReplyArticle(reply) {
  
   return article;
 }
-
+ 
 /**
  * TODO: Implement renderReplies.
  *
@@ -144,16 +150,16 @@ function createReplyArticle(reply) {
  *    result to replyListContainer.
  */
 function renderReplies() {
-  // ... your implementation here ...
-  
+ 
   replyListContainer.innerHTML = "";
-
+ 
+  
   currentReplies.forEach(reply => {
     const article = createReplyArticle(reply);
     replyListContainer.appendChild(article);
   });
 }
-
+ 
 /**
  * TODO: Implement handleAddReply (async).
  *
@@ -175,19 +181,18 @@ function renderReplies() {
  *    - Clear newReplyText.
  */
 async function handleAddReply(event) {
-  // ... your implementation here ...
+
   event.preventDefault();
  
-  
-  const replyText = newReplyText.value.trim();
  
-  
+  const replyText = newReplyText.value.trim();
+
   if (replyText === "") {
     return;
   }
  
   try {
-    
+   
     const response = await fetch("./api/index.php?action=reply", {
       method: "POST",
       headers: {
@@ -202,24 +207,23 @@ async function handleAddReply(event) {
  
     const result = await response.json();
  
-    
     if (result.success === true) {
       
       currentReplies.push(result.data);
  
       
       renderReplies();
-      
+ 
       
       newReplyText.value = "";
-      } else {
-        console.error("Failed to add reply:", result);
-      }
-    } catch (error) {
-      console.error("Error adding reply:", error);
+    } else {
+      console.error("Failed to add reply:", result);
     }
+  } catch (error) {
+    console.error("Error adding reply:", error);
+  }
 }
-
+ 
 /**
  * TODO: Implement handleReplyListClick (async).
  *
@@ -232,8 +236,7 @@ async function handleAddReply(event) {
  *       renderReplies().
  */
 async function handleReplyListClick(event) {
-  // ... your implementation here ...
-  
+ 
   if (event.target.classList.contains("delete-reply-btn")) {
     const id = parseInt(event.target.dataset.id);
  
@@ -245,7 +248,7 @@ async function handleReplyListClick(event) {
  
       const result = await response.json();
  
-      
+     
       if (result.success === true) {
        
         currentReplies = currentReplies.filter(reply => reply.id !== id);
@@ -260,7 +263,7 @@ async function handleReplyListClick(event) {
     }
   }
 }
-
+ 
 /**
  * TODO: Implement initializePage (async).
  *
@@ -288,7 +291,7 @@ async function handleReplyListClick(event) {
  *    - Set topicSubject.textContent = "Topic not found."
  */
 async function initializePage() {
-  // ... your implementation here ...
+
   try {
     
     currentTopicId = getTopicIdFromURL();
@@ -308,7 +311,7 @@ async function initializePage() {
     const topicResult = await topicResponse.json();
     const repliesResult = await repliesResponse.json();
  
-   
+    
     if (topicResult.success === true) {
       const topic = topicResult.data;
  
@@ -322,7 +325,7 @@ async function initializePage() {
       
       renderOriginalPost(topic);
  
-     
+      
       renderReplies();
  
       
@@ -337,6 +340,7 @@ async function initializePage() {
     topicSubject.textContent = "Error loading topic.";
   }
 }
-
+ 
 // --- Initial Page Load ---
 initializePage();
+ 
