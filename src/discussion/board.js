@@ -1,16 +1,16 @@
 /*
   Requirement: Make the "Discussion Board" page interactive.
-
+ 
   Instructions:
   1. This file is already linked to `board.html` via:
          <script src="board.js" defer></script>
-
+ 
   2. In `board.html`:
      - The new-topic form has id="new-topic-form".
      - The topic list container has id="topic-list-container".
-
+ 
   3. Implement the TODOs below.
-
+ 
   API base URL: ./api/index.php
   All requests and responses use JSON.
   Successful list response shape: { success: true, data: [ ...topic objects ] }
@@ -23,18 +23,18 @@
       created_at: string    // "YYYY-MM-DD HH:MM:SS" — matches the SQL column name
     }
 */
-
+ 
 // --- Global Data Store ---
 // Holds the topics currently displayed in the list.
 let topics = [];
-
+ 
 // --- Element Selections ---
 // TODO: Select the new-topic form by id 'new-topic-form'.
 const newTopicForm=document.getElementById("new-topic-form");
 // TODO: Select the topic list container by id 'topic-list-container'.
 const topicListContainer=document.getElementById("topic-list-container");
 // --- Functions ---
-
+ 
 /**
  * TODO: Implement createTopicArticle.
  *
@@ -93,7 +93,7 @@ function createTopicArticle(topic) {
  
   return article;
 }
-
+ 
 /**
  * TODO: Implement renderTopics.
  *
@@ -106,14 +106,14 @@ function createTopicArticle(topic) {
 function renderTopics() {
   // ... your implementation here ...
   topicListContainer.innerHTML="";
-
+ 
   topics.forEach(topic =>{
   const article=createTopicArticle(topic);
   topicListContainer.appendChild(article);
   });
   
 }
-
+ 
 /**
  * TODO: Implement handleCreateTopic (async).
  *
@@ -177,7 +177,7 @@ async function handleCreateTopic(event) {
     console.error("Error creating topic:", error);
   }
 } 
-
+ 
 /**
  * TODO: Implement handleUpdateTopic (async).
  *
@@ -228,7 +228,7 @@ async function handleUpdateTopic(id, fields) {
     console.error("Error updating topic:", error);
   }
 }
-
+ 
 /**
  * TODO: Implement handleTopicListClick (async).
  *
@@ -298,7 +298,7 @@ async function handleTopicListClick(event) {
     }
   }
 }
-
+ 
 /**
  * TODO: Implement loadAndInitialize (async).
  *
@@ -316,20 +316,21 @@ async function loadAndInitialize() {
   // ... your implementation here ...
   try {
     const response  =await fetch("./api/index.php");
-    const result = await response.jason();
-
+    const result = await response.json();
+ 
     if(result.success === true){
       topics=result.data;
     }
-
+ 
     renderTopics();
-
-    newTopicForm.addEventListener("submmit", handleTopicListClick);
+ 
+    newTopicForm.addEventListener("submit", handleCreateTopic);
+    topicListContainer.addEventListener("click", handleTopicListClick);
   }
   catch(error){
     console.error("Error loading topics ", error);
   }
 }
-
+ 
 // --- Initial Page Load ---
 loadAndInitialize();

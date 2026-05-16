@@ -109,30 +109,30 @@ function renderOriginalPost(topic) {
  * the SQL column name.
  */
 function createReplyArticle(reply) {
-
-  
+  // Create the main article element
   const article = document.createElement("article");
  
-  
+  // Create the paragraph with the reply text
   const p = document.createElement("p");
   p.textContent = reply.text;
  
-  
+  // Create the footer with author and date
   const footer = document.createElement("footer");
   footer.textContent = `Posted by: ${reply.author} on ${reply.created_at}`;
  
-  
+  // Create the action buttons container
   const buttonsDiv = document.createElement("div");
  
-  
+  // Create Delete button
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "delete-reply-btn";
   deleteBtn.setAttribute("data-id", reply.id);
   deleteBtn.textContent = "Delete";
  
-  
+  // Append button to the div
   buttonsDiv.appendChild(deleteBtn);
  
+  // Append all elements to the article
   article.appendChild(p);
   article.appendChild(footer);
   article.appendChild(buttonsDiv);
@@ -150,10 +150,10 @@ function createReplyArticle(reply) {
  *    result to replyListContainer.
  */
 function renderReplies() {
- 
+  // Clear the container
   replyListContainer.innerHTML = "";
  
-  
+  // Loop through replies and render each one
   currentReplies.forEach(reply => {
     const article = createReplyArticle(reply);
     replyListContainer.appendChild(article);
@@ -184,15 +184,16 @@ async function handleAddReply(event) {
 
   event.preventDefault();
  
- 
+  // Read and trim the reply text
   const replyText = newReplyText.value.trim();
-
+ 
+  // If empty, return early
   if (replyText === "") {
     return;
   }
  
   try {
-   
+    // Send POST request to API
     const response = await fetch("./api/index.php?action=reply", {
       method: "POST",
       headers: {
@@ -207,14 +208,15 @@ async function handleAddReply(event) {
  
     const result = await response.json();
  
+    // Check if the request was successful
     if (result.success === true) {
-      
+      // Add the new reply to the global currentReplies array
       currentReplies.push(result.data);
  
-      
+      // Re-render the replies list
       renderReplies();
  
-      
+      // Clear the textarea
       newReplyText.value = "";
     } else {
       console.error("Failed to add reply:", result);
@@ -236,24 +238,24 @@ async function handleAddReply(event) {
  *       renderReplies().
  */
 async function handleReplyListClick(event) {
- 
+  // Handle Delete button
   if (event.target.classList.contains("delete-reply-btn")) {
     const id = parseInt(event.target.dataset.id);
  
     try {
-      
+      // Send DELETE request to API
       const response = await fetch(`./api/index.php?action=delete_reply&id=${id}`, {
         method: "DELETE"
       });
  
       const result = await response.json();
  
-     
+      // Check if the request was successful
       if (result.success === true) {
-       
+        // Remove the reply from the global currentReplies array
         currentReplies = currentReplies.filter(reply => reply.id !== id);
  
-        
+        // Re-render the replies list
         renderReplies();
       } else {
         console.error("Failed to delete reply:", result);
@@ -291,18 +293,18 @@ async function handleReplyListClick(event) {
  *    - Set topicSubject.textContent = "Topic not found."
  */
 async function initializePage() {
-
+  
   try {
-    
+    // Get the topic ID from the URL
     currentTopicId = getTopicIdFromURL();
  
-   
+    // If no topic ID, show error message and return
     if (!currentTopicId) {
       topicSubject.textContent = "Topic not found.";
       return;
     }
  
-    
+    // Fetch topic details and replies in parallel
     const [topicResponse, repliesResponse] = await Promise.all([
       fetch(`./api/index.php?id=${currentTopicId}`),
       fetch(`./api/index.php?action=replies&topic_id=${currentTopicId}`)
@@ -311,28 +313,28 @@ async function initializePage() {
     const topicResult = await topicResponse.json();
     const repliesResult = await repliesResponse.json();
  
-    
+    // Check if topic was found
     if (topicResult.success === true) {
       const topic = topicResult.data;
  
-      
+      // Store replies in currentReplies (use empty array if none exist)
       if (repliesResult.success === true && repliesResult.data) {
         currentReplies = repliesResult.data;
       } else {
         currentReplies = [];
       }
  
-      
+      // Render the original post
       renderOriginalPost(topic);
  
-      
+      // Render the replies
       renderReplies();
  
-      
+      // Attach event listeners
       replyForm.addEventListener("submit", handleAddReply);
       replyListContainer.addEventListener("click", handleReplyListClick);
     } else {
-      
+      // Topic not found
       topicSubject.textContent = "Topic not found.";
     }
   } catch (error) {
@@ -343,4 +345,3 @@ async function initializePage() {
  
 // --- Initial Page Load ---
 initializePage();
- 
