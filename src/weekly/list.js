@@ -13,6 +13,7 @@
 
 // --- Element Selections ---
 // TODO: Select the section for the week list using its id 'week-list-section'.
+const weekListSection = document.getElementById('week-list-section');
 
 // --- Functions ---
 
@@ -42,7 +43,27 @@
  * the weeks table) so that details.js can read the id from the URL.
  */
 function createWeekArticle(week) {
-  // ... your implementation here ...
+  const article = document.createElement('article');
+
+  const title = document.createElement('h2');
+  title.textContent = week.title;
+
+  const startDate = document.createElement('p');
+  startDate.textContent = 'Starts on: ' + week.start_date;
+
+  const description = document.createElement('p');
+  description.textContent = week.description;
+
+  const link = document.createElement('a');
+  link.href = 'details.html?id=' + week.id;
+  link.textContent = 'View Details & Discussion';
+
+  article.appendChild(title);
+  article.appendChild(startDate);
+  article.appendChild(description);
+  article.appendChild(link);
+
+  return article;
 }
 
 /**
@@ -59,7 +80,17 @@ function createWeekArticle(week) {
  *    - Append the returned <article> to the list section.
  */
 async function loadWeeks() {
-  // ... your implementation here ...
+  const response = await fetch('./api/index.php');
+  const result = await response.json();
+
+  weekListSection.innerHTML = '';
+
+  if (result.success && Array.isArray(result.data)) {
+    result.data.forEach(function (week) {
+      const article = createWeekArticle(week);
+      weekListSection.appendChild(article);
+    });
+  }
 }
 
 // --- Initial Page Load ---
