@@ -672,7 +672,7 @@ function validateDate(string $date): bool
     return $d && $d->format('Y-m-d') === $date;
 }
 
-
+//
 /**
  * Sanitize a string input.
  *
