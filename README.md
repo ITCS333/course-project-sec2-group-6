@@ -23,7 +23,7 @@ The website covers five functional areas, each assigned to one team member.
 |------|-------------|------------|-----------------|
 | 1 | Home Page, Authentication & User Management |202103777 | prime-sadiq|
 | 2 | Course Resources | | |
-| 3 | Weekly Breakdown | | |
+| 3 | Weekly Breakdown |202400652 |kabaish |
 | 4 | Assignments | | |
 | 5 | Discussion Board | | |
 
