@@ -79,9 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 
+```php id="i6f1gt"
 // TODO: Include the shared database connection file.
 // require_once __DIR__ . '/../../common/db.php';
-require_once __DIR__ . '/../../common/db.php';
+require_once __DIR__ . '/db.php';
+```
 
 
 // TODO: Get the PDO database connection.
