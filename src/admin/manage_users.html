@@ -1,49 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal</title>
-    <style>
-        body{font-family:sans-serif;margin:20px}
-        table{width:100%;border-collapse:collapse;margin-top:20px}
-        th,td{border:1px solid #ddd;padding:8px;text-align:left}
-        th{cursor:pointer;background:#f2f2f2}
-        button{margin:2px;padding:5px 10px;cursor:pointer}
-        .delete-btn{background:#d32f2f;color:white;border:none}
-        .edit-btn{background:#1976d2;color:white;border:none}
-        #search-input{margin-bottom:10px;padding:8px;width:300px}
-        details{margin-bottom:20px}
-    </style>
+<meta charset="UTF-8">
+<title>Admin</title>
+<script src="../js/manage_users.js" defer></script>
 </head>
+
 <body>
-<header><h1>Admin Portal</h1></header>
-<main>
-    <section>
-        <h2>Change Your Password</h2>
-        <form id="password-form">
-            <label>Current Password</label><input type="password" id="current-password" required>
-            <label>New Password</label><input type="password" id="new-password" minlength="8" required>
-            <label>Confirm Password</label><input type="password" id="confirm-password" required>
-            <button type="submit" id="change">Update Password</button>
-        </form>
-    </section>
-    <section>
-        <h2>Manage Users</h2>
-        <details><summary>Add New User</summary>
-            <form id="add-user-form">
-                <label>Full Name</label><input type="text" id="user-name" required>
-                <label>Email</label><input type="email" id="user-email" required>
-                <label>Default Password</label><input type="password" id="default-password" minlength="8" required>
-                <label>Role</label><select id="is-admin"><option value="0">Student</option><option value="1">Admin</option></select>
-                <button type="submit" id="add">Add User</button>
-            </form>
-        </details>
-        <h3>Registered Users</h3>
-        <input type="text" id="search-input" placeholder="Search by name or email...">
-        <table id="user-table"><thead><tr><th>Name</th><th>Email</th><th>Admin</th><th>Actions</th></tr></thead><tbody id="user-table-body"></tbody></table>
-    </section>
-</main>
-<script src="src/admin/users.js" defer></script>
+
+<h1>Admin Portal</h1>
+
+<form id="add-user-form">
+<input id="user-name" placeholder="Name">
+<input id="user-email" placeholder="Email">
+<input id="default-password" placeholder="Password">
+<select id="is-admin">
+<option value="0">Student</option>
+<option value="1">Admin</option>
+</select>
+<button>Add</button>
+</form>
+
+<input id="search-input" placeholder="Search">
+
+<table border="1">
+<thead>
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Admin</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody id="user-table-body"></tbody>
+</table>
+
 </body>
 </html>
