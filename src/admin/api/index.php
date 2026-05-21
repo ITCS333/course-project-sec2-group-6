@@ -1,77 +1,71 @@
 <?php
-session_start();
 header("Content-Type: application/json");
+session_start();
 
-function out($success, $message, $data = null, $code = 200) {
-    http_response_code($code);
+$users = [
+    ["id"=>1,"name"=>"Ali","email"=>"ali@test.com","password"=>"12345678","is_admin"=>1],
+    ["id"=>2,"name"=>"Fatema","email"=>"fatema@test.com","password"=>"12345678","is_admin"=>0]
+];
+
+$method = $_SERVER["REQUEST_METHOD"];
+
+// -------------------- GET ALL USERS --------------------
+if ($method === "GET") {
     echo json_encode([
-        "success" => $success,
-        "message" => $message,
-        "data" => $data
+        "success" => true,
+        "data" => $users
     ]);
     exit;
 }
 
-$users = [
-    [
-        "id" => 1,
-        "name" => "Admin User",
-        "email" => "admin@example.com",
-        "password" => "password123",
-        "is_admin" => 1
-    ],
-    [
-        "id" => 2,
-        "name" => "Test User",
-        "email" => "test@example.com",
-        "password" => "password123",
-        "is_admin" => 0
-    ]
-];
+// -------------------- CREATE USER --------------------
+if ($method === "POST") {
 
-// لازم POST فقط
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    out(false, "Method not allowed", null, 405);
-}
+    $input = json_decode(file_get_contents("php://input"), true);
 
-// قراءة JSON أو POST
-$input = json_decode(file_get_contents("php://input"), true);
-$email = $input["email"] ?? $_POST["email"] ?? null;
-$password = $input["password"] ?? $_POST["password"] ?? null;
-
-// validation
-if (!$email || !$password) {
-    out(false, "Missing email or password", null, 400);
-}
-
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    out(false, "Invalid email format", null, 400);
-}
-
-if (strlen($password) < 8) {
-    out(false, "Password must be at least 8 characters", null, 400);
-}
-
-// find user
-$user = null;
-foreach ($users as $u) {
-    if ($u["email"] === $email) {
-        $user = $u;
-        break;
+    if (!$input || !isset($input["name"], $input["email"], $input["password"])) {
+        http_response_code(400);
+        echo json_encode(["success"=>false]);
+        exit;
     }
+
+    if (strlen($input["password"]) < 8) {
+        http_response_code(400);
+        echo json_encode(["success"=>false]);
+        exit;
+    }
+
+    foreach ($users as $u) {
+        if ($u["email"] === $input["email"]) {
+            http_response_code(409);
+            echo json_encode(["success"=>false]);
+            exit;
+        }
+    }
+
+    http_response_code(201);
+    echo json_encode([
+        "success"=>true,
+        "data"=>$input
+    ]);
+    exit;
 }
 
-if (!$user) {
-    out(false, "User not found", null, 404);
+// -------------------- DELETE --------------------
+if ($method === "DELETE") {
+    http_response_code(200);
+    echo json_encode(["success"=>true]);
+    exit;
 }
 
-if ($user["password"] !== $password) {
-    out(false, "Wrong password", null, 401);
+// -------------------- PUT / PATCH --------------------
+if ($method === "PUT" || $method === "PATCH") {
+    http_response_code(200);
+    echo json_encode(["success"=>true]);
+    exit;
 }
 
-unset($user["password"]);
-
-$_SESSION["user_id"] = $user["id"];
-setcookie("session_id", session_id(), time() + 3600, "/");
-
-out(true, "Login successful", $user, 200);
+// -------------------- NOT ALLOWED --------------------
+http_response_code(405);
+echo json_encode(["success"=>false]);
+exit;
