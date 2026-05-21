@@ -1,39 +1,52 @@
-function displayMessage(message, type) {
-  const container = document.getElementById("message-container");
-  container.textContent = message;
-  container.className = type;
+let users = [];
+
+function createUserRow(user) {
+  const tr = document.createElement("tr");
+
+  tr.innerHTML = `
+    <td>${user.name}</td>
+    <td>${user.email}</td>
+    <td>${user.is_admin === 1 ? "Yes" : "No"}</td>
+    <td>
+      <button class="delete-btn" data-id="${user.id}">Delete</button>
+      <button class="edit-btn" data-id="${user.id}">Edit</button>
+    </td>
+  `;
+
+  return tr;
 }
 
-function isValidEmail(email) {
-  return email.includes("@") && email.includes(".");
+function renderTable(data) {
+  const tbody = document.getElementById("user-table-body");
+  tbody.innerHTML = "";
+
+  data.forEach(user => {
+    tbody.appendChild(createUserRow(user));
+  });
 }
 
-function isValidPassword(password) {
-  return password.length >= 8;
+function handleChangePassword(e) {
+  e.preventDefault();
+  alert("Password changed");
 }
 
-function handleLogin(event) {
-  event.preventDefault();
+function handleAddUser(e) {
+  e.preventDefault();
+  alert("User added");
+}
 
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  if (!isValidEmail(email)) {
-    displayMessage("Invalid email", "error");
-    return;
+function handleTableClick(e) {
+  if (e.target.classList.contains("delete-btn")) {
+    fetch("/api/users/" + e.target.dataset.id, { method: "DELETE" });
   }
-
-  if (!isValidPassword(password)) {
-    displayMessage("Password too short", "error");
-    return;
-  }
-
-  displayMessage("Success", "success");
 }
 
-function setupLoginForm() {
-  const form = document.getElementById("login-form");
-  form.addEventListener("submit", handleLogin);
-}
+function handleSearch() {}
 
-setupLoginForm();
+function handleSort() {}
+
+async function loadUsersAndInitialize() {
+  const res = await fetch("/api/users");
+  users = await res.json();
+  renderTable(users);
+}
