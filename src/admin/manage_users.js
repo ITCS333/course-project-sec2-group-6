@@ -1,10 +1,65 @@
-let users=[],fullUsers=[],sortCol=null,sortDir='asc';
-const API='src/admin/users.php';
-function render(arr){const tbody=document.getElementById('user-table-body');if(!tbody)return;tbody.innerHTML='';arr.forEach(u=>{const r=tbody.insertRow();r.insertCell(0).textContent=u.name;r.insertCell(1).textContent=u.email;r.insertCell(2).textContent=u.is_admin?'Admin':'Student';const a=r.insertCell(3);const e=document.createElement('button');e.textContent='Edit';e.className='edit-btn';e.dataset.id=u.id;const d=document.createElement('button');d.textContent='Delete';d.className='delete-btn';d.dataset.id=u.id;a.appendChild(e);a.appendChild(d);});}
-window.handleChangePassword=function(e){e.preventDefault();const cur=document.getElementById('current-password').value,n=document.getElementById('new-password').value,c=document.getElementById('confirm-password').value;if(!cur||!n||!c)return alert('Fill all fields');if(n.length<8)return alert('Password must be at least 8 characters');if(n!==c)return alert('Passwords do not match');alert('Password changed');document.getElementById('password-form').reset();};
-window.handleAddUser=function(e){e.preventDefault();const name=document.getElementById('user-name').value.trim(),email=document.getElementById('user-email').value.trim(),pass=document.getElementById('default-password').value,admin=document.getElementById('is-admin').value==='1'?1:0;if(!name||!email||!pass)return alert('Please fill out all required fields.');if(pass.length<8)return alert('Password must be at least 8 characters.');fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,password:pass,is_admin:admin})}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.message);alert('User added');loadUsers();document.getElementById('add-user-form').reset();}).catch(err=>alert(err.message));};
-window.handleTableClick=function(e){const t=e.target;if(t.classList.contains('delete-btn')){const id=t.dataset.id;if(!confirm('Delete?'))return;fetch(`${API}?id=${id}`,{method:'DELETE'}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.message);users=users.filter(u=>u.id!=id);fullUsers=[...users];render(users);alert('Deleted');}).catch(err=>alert(err.message));}else if(t.classList.contains('edit-btn')){const id=t.dataset.id,user=users.find(u=>u.id==id);if(!user)return;const newName=prompt('New name:',user.name);if(newName&&newName.trim()){const newEmail=prompt('New email:',user.email);if(newEmail&&newEmail.trim()){const isAdmin=confirm('Admin?');fetch(API,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,name:newName.trim(),email:newEmail.trim(),is_admin:isAdmin?1:0})}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.message);loadUsers();alert('Updated');}).catch(err=>alert(err.message));}}}};
-window.handleSearch=function(){const term=document.getElementById('search-input').value.toLowerCase().trim();if(term==='')render(fullUsers);else render(fullUsers.filter(u=>u.name.toLowerCase().includes(term)||u.email.toLowerCase().includes(term)));};
-window.handleSort=function(e){const th=e.currentTarget,idx=th.cellIndex,prop=idx===0?'name':idx===1?'email':'is_admin';if(sortCol===prop)sortDir=sortDir==='asc'?'desc':'asc';else{sortCol=prop;sortDir='asc';}const sorted=[...fullUsers].sort((a,b)=>{let x=a[prop],y=b[prop];if(prop==='is_admin'){x=Number(x);y=Number(y);}else{x=String(x).toLowerCase();y=String(y).toLowerCase();}if(x<y)return sortDir==='asc'?-1:1;if(x>y)return sortDir==='asc'?1:-1;return 0;});render(sorted);};
-window.loadUsers=async function(){try{const r=await fetch(API);if(!r.ok)throw new Error('Failed');const j=await r.json();users=j.data||[];fullUsers=[...users];render(users);document.getElementById('password-form')?.addEventListener('submit',window.handleChangePassword);document.getElementById('add-user-form')?.addEventListener('submit',window.handleAddUser);document.getElementById('user-table-body')?.addEventListener('click',window.handleTableClick);document.getElementById('search-input')?.addEventListener('input',window.handleSearch);document.querySelectorAll('#user-table th').forEach(th=>th.addEventListener('click',window.handleSort));}catch(err){alert('Error loading users');}};
-document.addEventListener('DOMContentLoaded',window.loadUsers);
+let users=[];
+
+const table=document.getElementById("user-table-body");
+const form=document.getElementById("add-user-form");
+const search=document.getElementById("search-input");
+
+// تحميل البيانات
+async function load(){
+    const res=await fetch("../api/index.php");
+    const data=await res.json();
+    users=data.data;
+    render(users);
+}
+
+// رسم الجدول
+function render(arr){
+    table.innerHTML="";
+    arr.forEach(u=>{
+        let tr=document.createElement("tr");
+
+        tr.innerHTML=`
+        <td>${u.name}</td>
+        <td>${u.email}</td>
+        <td>${u.is_admin==1?"Yes":"No"}</td>
+        <td>
+        <button onclick="del(${u.id})">Delete</button>
+        </td>`;
+
+        table.appendChild(tr);
+    });
+}
+
+// حذف
+async function del(id){
+    await fetch("../api/index.php?id="+id,{method:"DELETE"});
+    load();
+}
+
+// إضافة مستخدم
+form.addEventListener("submit",async e=>{
+    e.preventDefault();
+
+    const body={
+        name:document.getElementById("user-name").value,
+        email:document.getElementById("user-email").value,
+        password:document.getElementById("default-password").value,
+        is_admin:document.getElementById("is-admin").value
+    };
+
+    await fetch("../api/index.php",{
+        method:"POST",
+        body:JSON.stringify(body)
+    });
+
+    load();
+});
+
+// بحث
+search.addEventListener("input",()=>{
+    let val=search.value.toLowerCase();
+    let filtered=users.filter(u=>u.name.toLowerCase().includes(val)||u.email.toLowerCase().includes(val));
+    render(filtered);
+});
+
+load();
