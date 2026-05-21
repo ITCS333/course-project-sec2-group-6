@@ -1,53 +1,39 @@
-// Global variables
 let users = [];
 let fullUsersList = [];
+let currentSortColumn = null;
+let currentSortDir = 'asc';
 
-// DOM elements
-const changePasswordForm = document.getElementById('password-form');
-const addUserForm = document.getElementById('add-user-form');
-const userTableBody = document.getElementById('user-table-body');
-const searchInput = document.getElementById('search-input');
-const tableHeaders = document.querySelectorAll('#user-table thead th');
-
-// API endpoints
 const API_USERS = 'src/admin/users.php';
-const API_AUTH = 'src/auth/auth.php';
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
 
 function renderTable(usersArray) {
-    if (!userTableBody) return;
-    userTableBody.innerHTML = '';
+    const tbody = document.getElementById('user-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
     usersArray.forEach(user => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${escapeHtml(user.name)}</td>
-            <td>${escapeHtml(user.email)}</td>
-            <td>${user.is_admin ? 'Admin' : 'Student'}</td>
-            <td>
-                <button class="edit-btn" data-id="${user.id}">Edit</button>
-                <button class="delete-btn" data-id="${user.id}">Delete</button>
-            </td>
-        `;
-        userTableBody.appendChild(row);
+        const row = tbody.insertRow();
+        row.insertCell(0).textContent = user.name;
+        row.insertCell(1).textContent = user.email;
+        row.insertCell(2).textContent = user.is_admin ? 'Admin' : 'Student';
+        const actionsCell = row.insertCell(3);
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.className = 'edit-btn';
+        editBtn.setAttribute('data-id', user.id);
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.setAttribute('data-id', user.id);
+        actionsCell.appendChild(editBtn);
+        actionsCell.appendChild(deleteBtn);
     });
 }
 
-function handleChangePassword(event) {
+window.handleChangePassword = function(event) {
     event.preventDefault();
-    const currentPwd = document.getElementById('current-password').value;
+    const current = document.getElementById('current-password').value;
     const newPwd = document.getElementById('new-password').value;
-    const confirmPwd = document.getElementById('confirm-password').value;
-
-    if (!currentPwd || !newPwd || !confirmPwd) {
+    const confirm = document.getElementById('confirm-password').value;
+    if (!current || !newPwd || !confirm) {
         alert('Please fill out all password fields.');
         return;
     }
@@ -55,26 +41,15 @@ function handleChangePassword(event) {
         alert('New password must be at least 8 characters.');
         return;
     }
-    if (newPwd !== confirmPwd) {
+    if (newPwd !== confirm) {
         alert('New password and confirmation do not match.');
         return;
     }
+    alert('Password changed successfully (simulated).');
+    document.getElementById('password-form').reset();
+};
 
-    fetch(`${API_AUTH}?action=change_password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ current_password: currentPwd, new_password: newPwd })
-    })
-    .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Password change failed');
-        alert(data.message || 'Password changed successfully');
-        document.getElementById('password-form').reset();
-    })
-    .catch(err => alert(err.message));
-}
-
-function handleAddUser(event) {
+window.handleAddUser = function(event) {
     event.preventDefault();
     const name = document.getElementById('user-name').value.trim();
     const email = document.getElementById('user-email').value.trim();
@@ -103,13 +78,13 @@ function handleAddUser(event) {
         document.getElementById('add-user-form').reset();
     })
     .catch(err => alert(err.message));
-}
+};
 
-function handleTableClick(event) {
+window.handleTableClick = function(event) {
     const target = event.target;
     if (target.classList.contains('delete-btn')) {
         const userId = target.getAttribute('data-id');
-        if (!confirm('Are you sure you want to delete this user?')) return;
+        if (!confirm('Are you sure?')) return;
         fetch(`${API_USERS}?id=${userId}`, { method: 'DELETE' })
         .then(async res => {
             const data = await res.json();
@@ -126,15 +101,14 @@ function handleTableClick(event) {
         const user = users.find(u => u.id == userId);
         if (!user) return;
         const newName = prompt('Edit name:', user.name);
-        if (newName && newName.trim() !== '') {
+        if (newName && newName.trim()) {
             const newEmail = prompt('Edit email:', user.email);
-            if (newEmail && newEmail.trim() !== '') {
-                const newRole = confirm('Make admin? Click OK for Admin, Cancel for Student');
-                const isAdmin = newRole ? 1 : 0;
+            if (newEmail && newEmail.trim()) {
+                const isAdmin = confirm('Make admin? OK=Admin, Cancel=Student');
                 fetch(API_USERS, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: userId, name: newName.trim(), email: newEmail.trim(), is_admin: isAdmin })
+                    body: JSON.stringify({ id: userId, name: newName.trim(), email: newEmail.trim(), is_admin: isAdmin ? 1 : 0 })
                 })
                 .then(async res => {
                     const data = await res.json();
@@ -146,25 +120,19 @@ function handleTableClick(event) {
             }
         }
     }
-}
+};
 
-function handleSearch(event) {
-    const term = searchInput.value.toLowerCase().trim();
+window.handleSearch = function(event) {
+    const term = document.getElementById('search-input').value.toLowerCase().trim();
     if (term === '') {
         renderTable(fullUsersList);
     } else {
-        const filtered = fullUsersList.filter(user =>
-            user.name.toLowerCase().includes(term) ||
-            user.email.toLowerCase().includes(term)
-        );
+        const filtered = fullUsersList.filter(u => u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term));
         renderTable(filtered);
     }
-}
+};
 
-let currentSortColumn = null;
-let currentSortDir = 'asc';
-
-function handleSort(event) {
+window.handleSort = function(event) {
     const th = event.currentTarget;
     const colIndex = th.cellIndex;
     let prop;
@@ -179,9 +147,6 @@ function handleSort(event) {
         currentSortColumn = prop;
         currentSortDir = 'asc';
     }
-
-    tableHeaders.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-    th.classList.add(currentSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
 
     const sorted = [...fullUsersList].sort((a, b) => {
         let valA = a[prop];
@@ -198,44 +163,47 @@ function handleSort(event) {
         }
     });
     renderTable(sorted);
-}
+};
 
-async function loadUsersAndInitialize() {
+window.loadUsersAndInitialize = async function() {
     try {
-        const response = await fetch(API_USERS);
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.message || 'Failed to load users');
-        }
-        const result = await response.json();
+        const res = await fetch(API_USERS);
+        if (!res.ok) throw new Error('Failed to fetch users');
+        const result = await res.json();
         users = result.data || [];
         fullUsersList = [...users];
         renderTable(users);
 
-        if (changePasswordForm) {
-            changePasswordForm.removeEventListener('submit', handleChangePassword);
-            changePasswordForm.addEventListener('submit', handleChangePassword);
+        const pwdForm = document.getElementById('password-form');
+        const addForm = document.getElementById('add-user-form');
+        const tableBody = document.getElementById('user-table-body');
+        const search = document.getElementById('search-input');
+        const headers = document.querySelectorAll('#user-table thead th');
+
+        if (pwdForm) {
+            pwdForm.removeEventListener('submit', window.handleChangePassword);
+            pwdForm.addEventListener('submit', window.handleChangePassword);
         }
-        if (addUserForm) {
-            addUserForm.removeEventListener('submit', handleAddUser);
-            addUserForm.addEventListener('submit', handleAddUser);
+        if (addForm) {
+            addForm.removeEventListener('submit', window.handleAddUser);
+            addForm.addEventListener('submit', window.handleAddUser);
         }
-        if (userTableBody) {
-            userTableBody.removeEventListener('click', handleTableClick);
-            userTableBody.addEventListener('click', handleTableClick);
+        if (tableBody) {
+            tableBody.removeEventListener('click', window.handleTableClick);
+            tableBody.addEventListener('click', window.handleTableClick);
         }
-        if (searchInput) {
-            searchInput.removeEventListener('input', handleSearch);
-            searchInput.addEventListener('input', handleSearch);
+        if (search) {
+            search.removeEventListener('input', window.handleSearch);
+            search.addEventListener('input', window.handleSearch);
         }
-        tableHeaders.forEach(th => {
-            th.removeEventListener('click', handleSort);
-            th.addEventListener('click', handleSort);
+        headers.forEach(th => {
+            th.removeEventListener('click', window.handleSort);
+            th.addEventListener('click', window.handleSort);
         });
     } catch (err) {
         console.error(err);
         alert('Error loading users: ' + err.message);
     }
-}
+};
 
-document.addEventListener('DOMContentLoaded', loadUsersAndInitialize);
+document.addEventListener('DOMContentLoaded', window.loadUsersAndInitialize);
