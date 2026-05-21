@@ -2,138 +2,169 @@
 session_start();
 header("Content-Type: application/json");
 
-require_once "../../common/db.php";
-$pdo = getDBConnection();
-
-$method = $_SERVER['REQUEST_METHOD'];
-
-// -------------------- GET ALL --------------------
-if ($method === "GET" && !isset($_GET['id'])) {
-
-    $stmt = $pdo->query("SELECT id,name,email,is_admin FROM users");
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    jsonResponse([
-        "success" => true,
-        "data" => $users
-    ]);
+if (!isset($_SESSION['users'])) {
+    $_SESSION['users'] = [
+        [
+            "id" => 1,
+            "name" => "Ali Hassan",
+            "email" => "ali@stu.uob.edu.bh",
+            "password" => "password",
+            "is_admin" => 1
+        ],
+        [
+            "id" => 2,
+            "name" => "Fatema Ahmed",
+            "email" => "fatema@stu.uob.edu.bh",
+            "password" => "password",
+            "is_admin" => 0
+        ]
+    ];
 }
 
-// -------------------- GET BY ID --------------------
-if ($method === "GET" && isset($_GET['id'])) {
+$users =& $_SESSION['users'];
 
-    $stmt = $pdo->prepare("SELECT id,name,email,is_admin FROM users WHERE id=?");
-    $stmt->execute([$_GET['id']]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+function json($data, $code = 200) {
+    http_response_code($code);
+    echo json_encode($data);
+    exit;
+}
 
-    if (!$user) {
-        jsonResponse(["success" => false], 404);
+$method = $_SERVER["REQUEST_METHOD"];
+
+/* ===================== GET ===================== */
+if ($method === "GET") {
+
+    // search
+    if (isset($_GET['search'])) {
+        $q = strtolower($_GET['search']);
+
+        $result = array_values(array_filter($users, function ($u) use ($q) {
+            return str_contains(strtolower($u['name']), $q) ||
+                   str_contains(strtolower($u['email']), $q);
+        }));
+
+        foreach ($result as &$u) unset($u['password']);
+
+        json(["success" => true, "data" => $result]);
     }
 
-    jsonResponse([
-        "success" => true,
-        "data" => $user
-    ]);
+    // get by id
+    if (isset($_GET['id'])) {
+        foreach ($users as $u) {
+            if ($u['id'] == $_GET['id']) {
+                unset($u['password']);
+                json(["success" => true, "data" => $u]);
+            }
+        }
+        json(["success" => false], 404);
+    }
+
+    // all users
+    $result = [];
+    foreach ($users as $u) {
+        unset($u['password']);
+        $result[] = $u;
+    }
+
+    json(["success" => true, "data" => $result]);
 }
 
-// -------------------- CREATE --------------------
+/* ===================== POST ===================== */
 if ($method === "POST") {
 
-    $data = json_decode(file_get_contents("php://input"), true);
+    $input = $_POST ?: json_decode(file_get_contents("php://input"), true);
 
-    if (!isset($data['name'], $data['email'], $data['password'])) {
-        jsonResponse(["success" => false], 400);
+    // change password
+    if (isset($_GET['action']) && $_GET['action'] === "change_password") {
+
+        foreach ($users as &$u) {
+            if ($u['id'] == $input['id']) {
+
+                if ($input['current_password'] !== $u['password']) {
+                    json(["success" => false], 401);
+                }
+
+                if (strlen($input['new_password']) < 8) {
+                    json(["success" => false], 400);
+                }
+
+                $u['password'] = $input['new_password'];
+                json(["success" => true]);
+            }
+        }
+
+        json(["success" => false], 404);
     }
 
-    if (strlen($data['password']) < 8) {
-        jsonResponse(["success" => false], 400);
+    // create user
+    if (!isset($input['name'], $input['email'], $input['password'])) {
+        json(["success" => false], 400);
     }
 
-    // duplicate check
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE email=?");
-    $stmt->execute([$data['email']]);
-
-    if ($stmt->fetch()) {
-        jsonResponse(["success" => false], 409);
+    if (strlen($input['password']) < 8) {
+        json(["success" => false], 400);
     }
 
-    $stmt = $pdo->prepare("
-        INSERT INTO users (name,email,password,is_admin)
-        VALUES (?,?,?,?)
-    ");
-
-    $stmt->execute([
-        $data['name'],
-        $data['email'],
-        $data['password'],
-        $data['is_admin'] ?? 0
-    ]);
-
-    jsonResponse([
-        "success" => true,
-        "data" => ["id" => $pdo->lastInsertId()]
-    ], 201);
-}
-
-// -------------------- UPDATE --------------------
-if ($method === "PUT") {
-
-    $data = json_decode(file_get_contents("php://input"), true);
-
-    $stmt = $pdo->prepare("SELECT id FROM users WHERE id=?");
-    $stmt->execute([$data['id']]);
-
-    if (!$stmt->fetch()) {
-        jsonResponse(["success" => false], 404);
-    }
-
-    if (isset($data['email'])) {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email=? AND id!=?");
-        $stmt->execute([$data['email'], $data['id']]);
-        if ($stmt->fetch()) {
-            jsonResponse(["success" => false], 409);
+    foreach ($users as $u) {
+        if ($u['email'] === $input['email']) {
+            json(["success" => false], 409);
         }
     }
 
-    $stmt = $pdo->prepare("
-        UPDATE users 
-        SET name=COALESCE(?,name),
-            email=COALESCE(?,email)
-        WHERE id=?
-    ");
+    $newId = max(array_column($users, 'id')) + 1;
 
-    $stmt->execute([
-        $data['name'] ?? null,
-        $data['email'] ?? null,
-        $data['id']
-    ]);
+    $users[] = [
+        "id" => $newId,
+        "name" => $input['name'],
+        "email" => $input['email'],
+        "password" => $input['password'],
+        "is_admin" => $input['is_admin'] ?? 0
+    ];
 
-    jsonResponse(["success" => true]);
+    json(["success" => true, "data" => ["id" => $newId]], 201);
 }
 
-// -------------------- DELETE --------------------
+/* ===================== PUT ===================== */
+if ($method === "PUT") {
+
+    $input = json_decode(file_get_contents("php://input"), true);
+
+    foreach ($users as &$u) {
+        if ($u['id'] == $input['id']) {
+
+            if (isset($input['email'])) {
+                foreach ($users as $o) {
+                    if ($o['email'] === $input['email'] && $o['id'] != $input['id']) {
+                        json(["success" => false], 409);
+                    }
+                }
+                $u['email'] = $input['email'];
+            }
+
+            if (isset($input['name'])) {
+                $u['name'] = $input['name'];
+            }
+
+            json(["success" => true]);
+        }
+    }
+
+    json(["success" => false], 404);
+}
+
+/* ===================== DELETE ===================== */
 if ($method === "DELETE") {
 
     $id = $_GET['id'] ?? null;
 
-    $stmt = $pdo->prepare("DELETE FROM users WHERE id=?");
-    $stmt->execute([$id]);
-
-    if ($stmt->rowCount() === 0) {
-        jsonResponse(["success" => false], 404);
+    foreach ($users as $i => $u) {
+        if ($u['id'] == $id) {
+            array_splice($users, $i, 1);
+            json(["success" => true]);
+        }
     }
 
-    jsonResponse(["success" => true]);
+    json(["success" => false], 404);
 }
 
-// -------------------- METHOD NOT ALLOWED --------------------
-jsonResponse(["success" => false], 405);
-
-
-// helper
-function jsonResponse($data, $status = 200)
-{
-    http_response_code($status);
-    echo json_encode($data);
-    exit;
-}
+json(["success" => false], 405);
