@@ -1,23 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Users</title>
-
     <script src="manage_users.js" defer></script>
 </head>
 
 <body>
+
 <header>
     <h1>User Management</h1>
 </header>
 
 <main>
 
-<!-- Password Section -->
 <section>
-    <h2>Change Password</h2>
+    <h2>Password Management</h2>
 
     <form id="password-form">
         <fieldset>
@@ -32,24 +31,23 @@
     </form>
 </section>
 
-<!-- Users Section -->
 <section>
-    <h2>Users</h2>
+    <h2>User Management</h2>
 
     <details>
         <summary>Add User</summary>
 
         <form id="add-user-form">
             <fieldset>
-                <legend>Add New User</legend>
+                <legend>Add User</legend>
 
                 <input type="text" id="user-name" required>
                 <input type="email" id="user-email" required>
                 <input type="password" id="default-password" required minlength="8">
 
                 <select id="is-admin">
-                    <option value="0">No</option>
-                    <option value="1">Yes</option>
+                    <option value="0">User</option>
+                    <option value="1">Admin</option>
                 </select>
 
                 <button type="submit" id="add">Add</button>
@@ -57,21 +55,23 @@
         </form>
     </details>
 
-    <input id="search-input" placeholder="Search users">
+    <input id="search-input">
 
     <table id="user-table">
         <thead>
-        <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Actions</th>
-        </tr>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
         </thead>
 
         <tbody id="user-table-body"></tbody>
     </table>
+
 </section>
 
 </main>
+
 </body>
 </html>
