@@ -1,132 +1,105 @@
 <?php
+session_start();
 header("Content-Type: application/json");
 
-session_start();
-
-/* ---------------- MOCK DATABASE ---------------- */
+// Mock users database
 $users = [
     [
         "id" => 1,
-        "name" => "Admin",
-        "email" => "admin@example.com",
-        "password" => "12345678",
-        "is_admin" => 1
+        "name" => "Test User",
+        "email" => "test@example.com",
+        "password" => "password123",
+        "is_admin" => 0
     ],
     [
         "id" => 2,
-        "name" => "User One",
-        "email" => "user1@example.com",
-        "password" => "12345678",
-        "is_admin" => 0
+        "name" => "Admin User",
+        "email" => "admin@example.com",
+        "password" => "admin12345",
+        "is_admin" => 1
     ]
 ];
 
-/* ---------------- ROUTING ---------------- */
-$method = $_SERVER["REQUEST_METHOD"];
-
-/* ---------------- GET ALL USERS ---------------- */
-if ($method === "GET" && !isset($_GET["id"])) {
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    http_response_code(405);
     echo json_encode([
-        "success" => true,
-        "data" => $users
+        "success" => false,
+        "message" => "Method Not Allowed"
     ]);
     exit;
 }
 
-/* ---------------- GET USER BY ID ---------------- */
-if ($method === "GET" && isset($_GET["id"])) {
-    $id = (int) $_GET["id"];
+$email = $_POST["email"] ?? "";
+$password = $_POST["password"] ?? "";
 
-    foreach ($users as $user) {
-        if ($user["id"] === $id) {
-            echo json_encode([
-                "success" => true,
-                "data" => $user
-            ]);
-            exit;
-        }
+// validation
+if ($email === "" || $password === "") {
+    http_response_code(400);
+    echo json_encode([
+        "success" => false,
+        "message" => "Missing fields"
+    ]);
+    exit;
+}
+
+// email format check
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
+    echo json_encode([
+        "success" => false,
+        "message" => "Invalid email format"
+    ]);
+    exit;
+}
+
+// password length
+if (strlen($password) < 8) {
+    http_response_code(400);
+    echo json_encode([
+        "success" => false,
+        "message" => "Password too short"
+    ]);
+    exit;
+}
+
+// find user
+$userFound = null;
+foreach ($users as $u) {
+    if ($u["email"] === $email) {
+        $userFound = $u;
+        break;
     }
+}
 
+if (!$userFound) {
     http_response_code(404);
-    echo json_encode(["success" => false]);
-    exit;
-}
-
-/* ---------------- CREATE USER ---------------- */
-if ($method === "POST") {
-
-    $name = $_POST["name"] ?? null;
-    $email = $_POST["email"] ?? null;
-    $password = $_POST["password"] ?? null;
-
-    if (!$name || !$email || !$password) {
-        http_response_code(400);
-        echo json_encode(["success" => false]);
-        exit;
-    }
-
-    if (strlen($password) < 8) {
-        http_response_code(400);
-        echo json_encode(["success" => false]);
-        exit;
-    }
-
-    foreach ($users as $u) {
-        if ($u["email"] === $email) {
-            http_response_code(409);
-            echo json_encode(["success" => false]);
-            exit;
-        }
-    }
-
-    http_response_code(201);
     echo json_encode([
-        "success" => true,
-        "data" => [
-            "id" => rand(100, 999),
-            "name" => $name,
-            "email" => $email,
-            "is_admin" => 0
-        ]
+        "success" => false,
+        "message" => "User not found"
     ]);
     exit;
 }
 
-/* ---------------- DELETE USER ---------------- */
-if ($method === "DELETE") {
-    $id = $_GET["id"] ?? null;
-
-    if (!$id) {
-        http_response_code(404);
-        echo json_encode(["success" => false]);
-        exit;
-    }
-
-    echo json_encode(["success" => true]);
-    exit;
-}
-
-/* ---------------- UPDATE USER ---------------- */
-if ($method === "PUT") {
-    parse_str(file_get_contents("php://input"), $data);
-
-    $id = $data["id"] ?? null;
-
-    if (!$id) {
-        http_response_code(404);
-        echo json_encode(["success" => false]);
-        exit;
-    }
-
+// check password
+if ($userFound["password"] !== $password) {
+    http_response_code(401);
     echo json_encode([
-        "success" => true,
-        "data" => [
-            "id" => $id
-        ]
+        "success" => false,
+        "message" => "Wrong password"
     ]);
     exit;
 }
 
-/* ---------------- DEFAULT ---------------- */
-http_response_code(405);
-echo json_encode(["success" => false, "message" => "Method not allowed"]);
+// success login
+$_SESSION["user_id"] = $userFound["id"];
+
+echo json_encode([
+    "success" => true,
+    "user" => [
+        "id" => $userFound["id"],
+        "name" => $userFound["name"],
+        "email" => $userFound["email"],
+        "is_admin" => $userFound["is_admin"]
+    ]
+]);
+exit;
