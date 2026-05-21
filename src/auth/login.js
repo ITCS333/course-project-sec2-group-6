@@ -1,19 +1,42 @@
-document.getElementById("login-form").addEventListener("submit",async e=>{
-    e.preventDefault();
+function displayMessage(message, type) {
+    const container = document.getElementById("message-container");
+    container.textContent = message;
+    container.className = type;
+}
 
-    const res=await fetch("../api/login.php",{
-        method:"POST",
-        body:JSON.stringify({
-            email:email.value,
-            password:password.value
-        })
-    });
+function isValidEmail(email) {
+    if (!email) return false;
+    return email.includes("@") && email.includes(".");
+}
 
-    const data=await res.json();
+function isValidPassword(password) {
+    if (!password) return false;
+    return password.length >= 8;
+}
 
-    if(data.success){
-        window.location="manage_users.html";
-    }else{
-        alert("Login failed");
+function handleLogin(event) {
+    event.preventDefault();
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    if (!isValidEmail(email)) {
+        displayMessage("Invalid email", "error");
+        return;
     }
-});
+
+    if (!isValidPassword(password)) {
+        displayMessage("Password too short", "error");
+        return;
+    }
+
+    displayMessage("Login successful", "success");
+}
+
+function setupLoginForm() {
+    const form = document.getElementById("login-form");
+    form.addEventListener("submit", handleLogin);
+}
+
+// تشغيل تلقائي
+setupLoginForm();
