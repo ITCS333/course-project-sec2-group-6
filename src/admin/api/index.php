@@ -1,64 +1,202 @@
 <?php
+session_start();
 header("Content-Type: application/json");
 
-$users = [
-    ["id"=>1,"name"=>"Ali Hassan","email"=>"ali@test.com","is_admin"=>1],
-    ["id"=>2,"name"=>"Fatema Ahmed","email"=>"fatema@test.com","is_admin"=>0]
-];
+// ----------------------
+// Seeded users (IMPORTANT)
+// ----------------------
+if (!isset($_SESSION['users'])) {
+    $_SESSION['users'] = [
+        [
+            "id" => 1,
+            "name" => "Ali",
+            "email" => "ali@stu.uob.edu.bh",
+            "password" => "password123",
+            "is_admin" => 1
+        ],
+        [
+            "id" => 2,
+            "name" => "Fatema",
+            "email" => "fatema@stu.uob.edu.bh",
+            "password" => "password123",
+            "is_admin" => 0
+        ]
+    ];
+}
 
-$method = $_SERVER["REQUEST_METHOD"];
-
-// GET ALL
-if ($method === "GET") {
-    echo json_encode([
-        "success"=>true,
-        "data"=>$users
-    ]);
+function jsonResponse($data, $status = 200)
+{
+    http_response_code($status);
+    echo json_encode($data);
     exit;
 }
 
-// CREATE
-if ($method === "POST") {
+$method = $_SERVER['REQUEST_METHOD'];
+$users = &$_SESSION['users'];
 
-    $input = json_decode(file_get_contents("php://input"), true);
+// ----------------------
+// GET
+// ----------------------
+if ($method === "GET") {
 
-    if (!$input || !isset($input["name"],$input["email"],$input["password"])) {
-        http_response_code(400);
-        echo json_encode(["success"=>false]);
-        exit;
+    // search
+    if (isset($_GET['search'])) {
+        $keyword = strtolower($_GET['search']);
+        $filtered = array_values(array_filter($users, function ($u) use ($keyword) {
+            return strpos(strtolower($u['name']), $keyword) !== false ||
+                   strpos(strtolower($u['email']), $keyword) !== false;
+        }));
+
+        foreach ($filtered as &$u) {
+            unset($u['password']);
+        }
+
+        jsonResponse([
+            "success" => true,
+            "data" => $filtered
+        ]);
     }
 
-    if (strlen($input["password"]) < 8) {
-        http_response_code(400);
-        echo json_encode(["success"=>false]);
-        exit;
+    // get by id
+    if (isset($_GET['id'])) {
+        foreach ($users as $u) {
+            if ($u['id'] == $_GET['id']) {
+                unset($u['password']);
+                jsonResponse([
+                    "success" => true,
+                    "data" => $u
+                ]);
+            }
+        }
+        jsonResponse(["success" => false], 404);
+    }
+
+    // all users
+    $result = [];
+    foreach ($users as $u) {
+        unset($u['password']);
+        $result[] = $u;
+    }
+
+    jsonResponse([
+        "success" => true,
+        "data" => $result
+    ]);
+}
+
+// ----------------------
+// POST (CREATE + change password)
+// ----------------------
+if ($method === "POST") {
+
+    $input = $_POST ?: json_decode(file_get_contents("php://input"), true);
+
+    // change password
+    if (isset($_GET['action']) && $_GET['action'] === "change_password") {
+
+        foreach ($users as &$u) {
+            if ($u['id'] == $input['id']) {
+
+                if ($input['current_password'] !== $u['password']) {
+                    jsonResponse(["success" => false], 401);
+                }
+
+                if (strlen($input['new_password']) < 8) {
+                    jsonResponse(["success" => false], 400);
+                }
+
+                $u['password'] = $input['new_password'];
+                jsonResponse(["success" => true]);
+            }
+        }
+
+        jsonResponse(["success" => false], 404);
+    }
+
+    // create user
+    if (
+        !isset($input['name']) ||
+        !isset($input['email']) ||
+        !isset($input['password'])
+    ) {
+        jsonResponse(["success" => false], 400);
+    }
+
+    if (strlen($input['password']) < 8) {
+        jsonResponse(["success" => false], 400);
     }
 
     foreach ($users as $u) {
-        if ($u["email"] === $input["email"]) {
-            http_response_code(409);
-            echo json_encode(["success"=>false]);
-            exit;
+        if ($u['email'] === $input['email']) {
+            jsonResponse(["success" => false], 409);
         }
     }
 
-    http_response_code(201);
-    echo json_encode(["success"=>true,"data"=>$input]);
-    exit;
+    $newId = max(array_column($users, 'id')) + 1;
+
+    $users[] = [
+        "id" => $newId,
+        "name" => $input['name'],
+        "email" => $input['email'],
+        "password" => $input['password'],
+        "is_admin" => $input['is_admin'] ?? 0
+    ];
+
+    jsonResponse([
+        "success" => true,
+        "data" => ["id" => $newId]
+    ], 201);
 }
 
+// ----------------------
+// PUT (UPDATE)
+// ----------------------
+if ($method === "PUT") {
+
+    $input = json_decode(file_get_contents("php://input"), true);
+
+    foreach ($users as &$u) {
+        if ($u['id'] == $input['id']) {
+
+            // duplicate email check
+            if (isset($input['email'])) {
+                foreach ($users as $other) {
+                    if ($other['email'] === $input['email'] && $other['id'] != $input['id']) {
+                        jsonResponse(["success" => false], 409);
+                    }
+                }
+                $u['email'] = $input['email'];
+            }
+
+            if (isset($input['name'])) {
+                $u['name'] = $input['name'];
+            }
+
+            jsonResponse(["success" => true]);
+        }
+    }
+
+    jsonResponse(["success" => false], 404);
+}
+
+// ----------------------
 // DELETE
+// ----------------------
 if ($method === "DELETE") {
-    echo json_encode(["success"=>true]);
-    exit;
+
+    $id = $_GET['id'] ?? null;
+
+    foreach ($users as $i => $u) {
+        if ($u['id'] == $id) {
+            array_splice($users, $i, 1);
+            jsonResponse(["success" => true]);
+        }
+    }
+
+    jsonResponse(["success" => false], 404);
 }
 
-// UPDATE
-if ($method === "PUT" || $method === "PATCH") {
-    echo json_encode(["success"=>true]);
-    exit;
-}
-
-// METHOD NOT ALLOWED
-http_response_code(405);
-echo json_encode(["success"=>false]);
+// ----------------------
+// NOT ALLOWED
+// ----------------------
+jsonResponse(["success" => false], 405);
