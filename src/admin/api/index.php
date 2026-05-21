@@ -2,7 +2,18 @@
 session_start();
 header("Content-Type: application/json");
 
-// Fake users database (for tests)
+// Always return JSON helper
+function respond($success, $message, $data = null, $code = 200) {
+    http_response_code($code);
+    echo json_encode([
+        "success" => $success,
+        "message" => $message,
+        "data" => $data
+    ]);
+    exit;
+}
+
+// Fake users database (MUST match tests)
 $users = [
     [
         "id" => 1,
@@ -20,40 +31,33 @@ $users = [
     ]
 ];
 
-function response($success, $message, $data = null, $code = 200) {
-    http_response_code($code);
-    echo json_encode([
-        "success" => $success,
-        "message" => $message,
-        "data" => $data
-    ]);
-    exit;
-}
-
-// must be POST
+// ❌ MUST reject non-POST
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    response(false, "Method not allowed", null, 405);
+    respond(false, "Method not allowed", null, 405);
 }
 
-$email = $_POST["email"] ?? null;
-$password = $_POST["password"] ?? null;
+// Read JSON input (NOT $_POST)
+$input = json_decode(file_get_contents("php://input"), true);
 
-// missing fields
+$email = $input["email"] ?? null;
+$password = $input["password"] ?? null;
+
+// Missing fields
 if (!$email || !$password) {
-    response(false, "Missing email or password", null, 400);
+    respond(false, "Missing email or password", null, 400);
 }
 
-// email validation
+// Email validation
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    response(false, "Invalid email format", null, 400);
+    respond(false, "Invalid email format", null, 400);
 }
 
-// short password
+// Password length
 if (strlen($password) < 8) {
-    response(false, "Password must be at least 8 characters", null, 400);
+    respond(false, "Password must be at least 8 characters", null, 400);
 }
 
-// find user
+// Find user
 $foundUser = null;
 
 foreach ($users as $u) {
@@ -63,23 +67,24 @@ foreach ($users as $u) {
     }
 }
 
-// unknown user
+// Unknown user
 if (!$foundUser) {
-    response(false, "User not found", null, 404);
+    respond(false, "User not found", null, 404);
 }
 
-// wrong password
+// Wrong password
 if ($foundUser["password"] !== $password) {
-    response(false, "Wrong password", null, 401);
+    respond(false, "Wrong password", null, 401);
 }
 
-// success login
+// SUCCESS LOGIN
 unset($foundUser["password"]);
 
+// session must be set
 $_SESSION["user_id"] = $foundUser["id"];
 
-setcookie("session", session_id(), time() + 3600, "/");
+// cookie required by tests
+setcookie("session_id", session_id(), time() + 3600, "/");
 
-response(true, "Login successful", [
-    "user" => $foundUser
-], 200);
+// response must include user directly (important for tests)
+respond(true, "Login successful", $foundUser, 200);
