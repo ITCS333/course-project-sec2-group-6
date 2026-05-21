@@ -1,7 +1,7 @@
 let users = [];
 let sortAsc = true;
 
-// -------------------- CREATE ROW --------------------
+// ---------------- CREATE ROW ----------------
 function createUserRow(user) {
     const tr = document.createElement("tr");
 
@@ -18,20 +18,21 @@ function createUserRow(user) {
     return tr;
 }
 
-// -------------------- RENDER --------------------
+// ---------------- RENDER TABLE ----------------
 function renderTable(data) {
     const tbody = document.getElementById("user-table-body");
+    if (!tbody) return;
+
     tbody.innerHTML = "";
 
-    data.forEach(user => {
+    (data || []).forEach(user => {
         tbody.appendChild(createUserRow(user));
     });
 }
 
-// -------------------- SEARCH --------------------
+// ---------------- SEARCH ----------------
 function handleSearch(e) {
     const value = e.target.value.toLowerCase();
-
     const rows = document.querySelectorAll("#user-table-body tr");
 
     rows.forEach(row => {
@@ -40,7 +41,7 @@ function handleSearch(e) {
     });
 }
 
-// -------------------- SORT --------------------
+// ---------------- SORT ----------------
 function handleSort() {
     users.sort((a, b) => {
         return sortAsc
@@ -52,71 +53,76 @@ function handleSort() {
     renderTable(users);
 }
 
-// -------------------- ADD USER --------------------
+// ---------------- ADD USER ----------------
 async function handleAddUser(e) {
     e.preventDefault();
 
-    const name = document.getElementById("name").value;
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("default-password").value;
+    const nameEl = document.getElementById("name");
+    const emailEl = document.getElementById("email");
+    const passEl = document.getElementById("default-password");
+
+    const name = nameEl ? nameEl.value : "";
+    const email = emailEl ? emailEl.value : "";
+    const password = passEl ? passEl.value : "";
 
     if (!name || !email || !password) {
         alert("Required fields missing");
         return;
     }
 
-    const res = await fetch("/api/users.php", {
+    await fetch("api/users.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password })
     });
 
-    await res.json();
     alert("User added");
 }
 
-// -------------------- CHANGE PASSWORD --------------------
+// ---------------- CHANGE PASSWORD ----------------
 function handleChangePassword(e) {
     e.preventDefault();
 
-    const current = document.getElementById("current-password").value;
-    const newPass = document.getElementById("new-password").value;
-    const confirm = document.getElementById("confirm-password").value;
+    const current = document.getElementById("current-password");
+    const newPass = document.getElementById("new-password");
+    const confirm = document.getElementById("confirm-password");
 
-    if (newPass !== confirm) {
+    const currentVal = current ? current.value : "";
+    const newVal = newPass ? newPass.value : "";
+    const confirmVal = confirm ? confirm.value : "";
+
+    if (newVal !== confirmVal) {
         alert("Passwords do not match");
         return;
     }
 
-    if (newPass.length < 8) {
+    if (newVal.length < 8) {
         alert("Password must be at least 8 characters");
         return;
     }
 
     alert("Password changed");
 
-    document.getElementById("current-password").value = "";
-    document.getElementById("new-password").value = "";
-    document.getElementById("confirm-password").value = "";
+    if (current) current.value = "";
+    if (newPass) newPass.value = "";
+    if (confirm) confirm.value = "";
 }
 
-// -------------------- LOAD --------------------
+// ---------------- LOAD INIT ----------------
 async function loadUsersAndInitialize() {
-    const res = await fetch("/api/users.php");
+    const res = await fetch("api/users.php");
     users = await res.json();
 
     renderTable(users);
 
-    document
-        .getElementById("add-user-form")
-        .addEventListener("submit", handleAddUser);
+    const addForm = document.getElementById("add-user-form");
+    const passForm = document.getElementById("password-form");
 
-    document
-        .getElementById("password-form")
-        .addEventListener("submit", handleChangePassword);
+    if (addForm) addForm.addEventListener("submit", handleAddUser);
+    if (passForm) passForm.addEventListener("submit", handleChangePassword);
 }
 
-// -------------------- EXPORT FOR TESTS --------------------
+// expose for tests
 window.createUserRow = createUserRow;
 window.renderTable = renderTable;
 window.handleSearch = handleSearch;
