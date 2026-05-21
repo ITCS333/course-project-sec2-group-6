@@ -4,13 +4,17 @@ header("Content-Type: application/json");
 
 require_once __DIR__ . '/../../config/db.php';
 
-$pdo = getDBConnection();
+try {
+    $pdo = getDBConnection();
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(["success" => false, "error" => "DB connection failed"]);
+    exit;
+}
 
-$method = $_SERVER['REQUEST_METHOD'];
-
-if ($method !== "POST") {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Method not allowed"]);
+    echo json_encode(["success" => false]);
     exit;
 }
 
@@ -21,19 +25,7 @@ $password = $data['password'] ?? null;
 
 if (!$email || !$password) {
     http_response_code(400);
-    echo json_encode(["success" => false, "message" => "Missing fields"]);
-    exit;
-}
-
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "Invalid email"]);
-    exit;
-}
-
-if (strlen($password) < 8) {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "Password too short"]);
+    echo json_encode(["success" => false]);
     exit;
 }
 
@@ -43,7 +35,7 @@ $user = $stmt->fetch();
 
 if (!$user || !password_verify($password, $user['password'])) {
     http_response_code(401);
-    echo json_encode(["success" => false, "message" => "Invalid credentials"]);
+    echo json_encode(["success" => false]);
     exit;
 }
 
