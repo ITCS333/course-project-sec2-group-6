@@ -1,13 +1,43 @@
 <?php
-session_start();
-header('Content-Type: application/json');
-if($_SERVER['REQUEST_METHOD']!=='POST'){http_response_code(405);echo json_encode(['success'=>false,'message'=>'Method not allowed']);exit;}
-$email=trim($_POST['email']??'');$password=$_POST['password']??'';
-if(!filter_var($email,FILTER_VALIDATE_EMAIL)){http_response_code(400);echo json_encode(['success'=>false,'message'=>'Invalid email']);exit;}
-if(strlen($password)<8){http_response_code(400);echo json_encode(['success'=>false,'message'=>'Password too short']);exit;}
-require_once __DIR__.'/../config/db.php';
-$stmt=$pdo->prepare("SELECT id,name,email,password,is_admin FROM users WHERE email=?");
-$stmt->execute([$email]);$user=$stmt->fetch(PDO::FETCH_ASSOC);
-if(!$user||!password_verify($password,$user['password'])){http_response_code(401);echo json_encode(['success'=>false,'message'=>'Invalid email or password']);exit;}
-$_SESSION['user_id']=$user['id'];$_SESSION['user_name']=$user['name'];$_SESSION['user_email']=$user['email'];$_SESSION['is_admin']=(bool)$user['is_admin'];$_SESSION['logged_in']=true;
-http_response_code(200);echo json_encode(['success'=>true,'message'=>'Login successful','user'=>['id'=>$user['id'],'name'=>$user['name'],'email'=>$user['email'],'is_admin'=>(bool)$user['is_admin']]]);exit;
+header("Content-Type: application/json");
+require_once "../config/db.php";
+
+$pdo = getDBConnection();
+$method = $_SERVER['REQUEST_METHOD'];
+
+function send($data,$status=200){
+    http_response_code($status);
+    echo json_encode($status<400 ? ["success"=>true,"data"=>$data] : ["success"=>false,"message"=>$data]);
+    exit;
+}
+
+// GET
+if($method==="GET"){
+    $stmt=$pdo->query("SELECT id,name,email,is_admin FROM users");
+    send($stmt->fetchAll(PDO::FETCH_ASSOC));
+}
+
+// POST
+if($method==="POST"){
+    $data=json_decode(file_get_contents("php://input"),true);
+
+    if(!$data['name']||!$data['email']||!$data['password']){
+        send("Missing fields",400);
+    }
+
+    $hash=password_hash($data['password'],PASSWORD_DEFAULT);
+
+    $stmt=$pdo->prepare("INSERT INTO users(name,email,password,is_admin) VALUES(?,?,?,?)");
+    $stmt->execute([$data['name'],$data['email'],$hash,$data['is_admin']??0]);
+
+    send("User created",201);
+}
+
+// DELETE
+if($method==="DELETE"){
+    $id=$_GET['id']??0;
+    $stmt=$pdo->prepare("DELETE FROM users WHERE id=?");
+    $stmt->execute([$id]);
+    send("Deleted");
+}
+?>
