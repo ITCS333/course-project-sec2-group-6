@@ -22,93 +22,81 @@ if (!isset($_SESSION['users'])) {
     ];
 }
 
-$users =& $_SESSION['users'];
+$users = &$_SESSION['users'];
+$method = $_SERVER['REQUEST_METHOD'];
 
-function jsonResponse($data, $code = 200) {
-    http_response_code($code);
+// -------------------- RESPONSE HELPER --------------------
+function respond($data, $status = 200) {
+    http_response_code($status);
     echo json_encode($data);
     exit;
 }
 
-$method = $_SERVER["REQUEST_METHOD"];
-
-/* ===================== GET ===================== */
+// -------------------- GET --------------------
 if ($method === "GET") {
 
-    // GET by search
-    if (isset($_GET['search'])) {
-        $q = strtolower($_GET['search']);
-
-        $result = array_values(array_filter($users, function($u) use ($q) {
-            return str_contains(strtolower($u['name']), $q) ||
-                   str_contains(strtolower($u['email']), $q);
-        }));
-
-        foreach ($result as &$u) unset($u['password']);
-
-        jsonResponse(["success" => true, "data" => $result]);
-    }
-
-    // GET by id
     if (isset($_GET['id'])) {
         foreach ($users as $u) {
             if ($u['id'] == $_GET['id']) {
                 unset($u['password']);
-                jsonResponse(["success" => true, "data" => $u]);
+                respond(["success" => true, "data" => $u]);
             }
         }
-        jsonResponse(["success" => false], 404);
+        respond(["success" => false], 404);
     }
 
-    // GET all
     $result = [];
     foreach ($users as $u) {
         unset($u['password']);
         $result[] = $u;
     }
 
-    jsonResponse(["success" => true, "data" => $result]);
+    respond(["success" => true, "data" => $result]);
 }
 
-/* ===================== POST ===================== */
+// -------------------- POST (CREATE + CHANGE PASSWORD) --------------------
 if ($method === "POST") {
 
-    $input = $_POST ?: json_decode(file_get_contents("php://input"), true);
+    $input = json_decode(file_get_contents("php://input"), true);
 
-    // change password
+    // CHANGE PASSWORD
     if (isset($_GET['action']) && $_GET['action'] === "change_password") {
 
         foreach ($users as &$u) {
             if ($u['id'] == $input['id']) {
 
                 if ($input['current_password'] !== $u['password']) {
-                    jsonResponse(["success" => false], 401);
+                    respond(["success" => false], 401);
                 }
 
                 if (strlen($input['new_password']) < 8) {
-                    jsonResponse(["success" => false], 400);
+                    respond(["success" => false], 400);
                 }
 
                 $u['password'] = $input['new_password'];
-                jsonResponse(["success" => true]);
+                respond(["success" => true]);
             }
         }
 
-        jsonResponse(["success" => false], 404);
+        respond(["success" => false], 404);
     }
 
-    // create user
-    if (!isset($input['name'], $input['email'], $input['password'])) {
-        jsonResponse(["success" => false], 400);
+    // CREATE USER
+    if (
+        !isset($input['name']) ||
+        !isset($input['email']) ||
+        !isset($input['password'])
+    ) {
+        respond(["success" => false], 400);
     }
 
     if (strlen($input['password']) < 8) {
-        jsonResponse(["success" => false], 400);
+        respond(["success" => false], 400);
     }
 
     foreach ($users as $u) {
         if ($u['email'] === $input['email']) {
-            jsonResponse(["success" => false], 409);
+            respond(["success" => false], 409);
         }
     }
 
@@ -122,10 +110,10 @@ if ($method === "POST") {
         "is_admin" => $input['is_admin'] ?? 0
     ];
 
-    jsonResponse(["success" => true, "data" => ["id" => $newId]], 201);
+    respond(["success" => true, "data" => ["id" => $newId]], 201);
 }
 
-/* ===================== PUT ===================== */
+// -------------------- PUT --------------------
 if ($method === "PUT") {
 
     $input = json_decode(file_get_contents("php://input"), true);
@@ -134,9 +122,9 @@ if ($method === "PUT") {
         if ($u['id'] == $input['id']) {
 
             if (isset($input['email'])) {
-                foreach ($users as $o) {
-                    if ($o['email'] === $input['email'] && $o['id'] != $input['id']) {
-                        jsonResponse(["success" => false], 409);
+                foreach ($users as $other) {
+                    if ($other['email'] === $input['email'] && $other['id'] != $input['id']) {
+                        respond(["success" => false], 409);
                     }
                 }
                 $u['email'] = $input['email'];
@@ -146,14 +134,15 @@ if ($method === "PUT") {
                 $u['name'] = $input['name'];
             }
 
-            jsonResponse(["success" => true]);
+            unset($u); // important fix
+            respond(["success" => true]);
         }
     }
 
-    jsonResponse(["success" => false], 404);
+    respond(["success" => false], 404);
 }
 
-/* ===================== DELETE ===================== */
+// -------------------- DELETE --------------------
 if ($method === "DELETE") {
 
     $id = $_GET['id'] ?? null;
@@ -161,11 +150,11 @@ if ($method === "DELETE") {
     foreach ($users as $i => $u) {
         if ($u['id'] == $id) {
             array_splice($users, $i, 1);
-            jsonResponse(["success" => true]);
+            respond(["success" => true]);
         }
     }
 
-    jsonResponse(["success" => false], 404);
+    respond(["success" => false], 404);
 }
 
-jsonResponse(["success" => false], 405);
+respond(["success" => false], 405);
