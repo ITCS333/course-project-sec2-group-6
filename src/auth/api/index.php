@@ -1,43 +1,92 @@
 <?php
+session_start();
 header("Content-Type: application/json");
+
 require_once "../config/db.php";
 
 $pdo = getDBConnection();
+
 $method = $_SERVER['REQUEST_METHOD'];
 
-function send($data,$status=200){
-    http_response_code($status);
-    echo json_encode($status<400 ? ["success"=>true,"data"=>$data] : ["success"=>false,"message"=>$data]);
+if ($method !== "POST") {
+    http_response_code(405);
+    echo json_encode([
+        "success" => false,
+        "message" => "Method not allowed"
+    ]);
     exit;
 }
 
-// GET
-if($method==="GET"){
-    $stmt=$pdo->query("SELECT id,name,email,is_admin FROM users");
-    send($stmt->fetchAll(PDO::FETCH_ASSOC));
+$data = json_decode(file_get_contents("php://input"), true);
+
+if (!isset($data['email']) || !isset($data['password'])) {
+    http_response_code(400);
+    echo json_encode([
+        "success" => false,
+        "message" => "Missing fields"
+    ]);
+    exit;
 }
 
-// POST
-if($method==="POST"){
-    $data=json_decode(file_get_contents("php://input"),true);
+$email = trim($data['email']);
+$password = $data['password'];
 
-    if(!$data['name']||!$data['email']||!$data['password']){
-        send("Missing fields",400);
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
+    echo json_encode([
+        "success" => false,
+        "message" => "Invalid email"
+    ]);
+    exit;
+}
+
+if (strlen($password) < 8) {
+    http_response_code(400);
+    echo json_encode([
+        "success" => false,
+        "message" => "Password too short"
+    ]);
+    exit;
+}
+
+try {
+    $stmt = $pdo->prepare("SELECT id,name,email,password,is_admin FROM users WHERE email=?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$user || !password_verify($password, $user['password'])) {
+        http_response_code(401);
+        echo json_encode([
+            "success" => false,
+            "message" => "Invalid email or password"
+        ]);
+        exit;
     }
 
-    $hash=password_hash($data['password'],PASSWORD_DEFAULT);
+    // SESSION
+    $_SESSION['user_id'] = $user['id'];
+    $_SESSION['user_name'] = $user['name'];
+    $_SESSION['user_email'] = $user['email'];
+    $_SESSION['is_admin'] = $user['is_admin'];
+    $_SESSION['logged_in'] = true;
 
-    $stmt=$pdo->prepare("INSERT INTO users(name,email,password,is_admin) VALUES(?,?,?,?)");
-    $stmt->execute([$data['name'],$data['email'],$hash,$data['is_admin']??0]);
+    echo json_encode([
+        "success" => true,
+        "message" => "Login successful",
+        "user" => [
+            "id" => $user['id'],
+            "name" => $user['name'],
+            "email" => $user['email'],
+            "is_admin" => $user['is_admin']
+        ]
+    ]);
+    exit;
 
-    send("User created",201);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        "success" => false,
+        "message" => "Server error"
+    ]);
+    exit;
 }
-
-// DELETE
-if($method==="DELETE"){
-    $id=$_GET['id']??0;
-    $stmt=$pdo->prepare("DELETE FROM users WHERE id=?");
-    $stmt->execute([$id]);
-    send("Deleted");
-}
-?>
