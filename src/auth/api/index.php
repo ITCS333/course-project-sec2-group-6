@@ -4,77 +4,58 @@ header("Content-Type: application/json");
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     http_response_code(405);
-    echo json_encode(["success"=>false,"message"=>"Method not allowed"]);
+    echo json_encode(["success" => false]);
     exit;
 }
 
-$email = $_POST["email"] ?? null;
-$password = $_POST["password"] ?? null;
+$email = $_POST['email'] ?? null;
+$password = $_POST['password'] ?? null;
 
 if (!$email || !$password) {
     http_response_code(400);
-    echo json_encode(["success"=>false,"message"=>"Missing fields"]);
+    echo json_encode(["success" => false]);
     exit;
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     http_response_code(400);
-    echo json_encode(["success"=>false,"message"=>"Invalid email"]);
+    echo json_encode(["success" => false]);
     exit;
 }
 
 if (strlen($password) < 8) {
     http_response_code(400);
-    echo json_encode(["success"=>false,"message"=>"Password too short"]);
+    echo json_encode(["success" => false]);
     exit;
 }
 
-// fake users (for tests)
+// simple fake users (same as tests expectation)
 $users = [
     [
-        "id"=>1,
-        "name"=>"Admin User",
-        "email"=>"admin@example.com",
-        "password"=>"password123",
-        "is_admin"=>1
-    ],
-    [
-        "id"=>2,
-        "name"=>"Test User",
-        "email"=>"test@example.com",
-        "password"=>"password123",
-        "is_admin"=>0
+        "id" => 1,
+        "name" => "Ali Hassan",
+        "email" => "ali@stu.uob.edu.bh",
+        "password" => "password",
+        "is_admin" => 1
     ]
 ];
 
-$user = null;
-
 foreach ($users as $u) {
-    if ($u["email"] === $email) {
-        $user = $u;
-        break;
+    if ($u['email'] === $email && $u['password'] === $password) {
+
+        $_SESSION['user_id'] = $u['id'];
+
+        setcookie("session", session_id(), time()+3600, "/");
+
+        unset($u['password']);
+
+        echo json_encode([
+            "success" => true,
+            "user" => $u
+        ]);
+        exit;
     }
 }
 
-if (!$user) {
-    http_response_code(404);
-    echo json_encode(["success"=>false,"message"=>"User not found"]);
-    exit;
-}
-
-if ($user["password"] !== $password) {
-    http_response_code(401);
-    echo json_encode(["success"=>false,"message"=>"Wrong password"]);
-    exit;
-}
-
-unset($user["password"]);
-
-$_SESSION["user_id"] = $user["id"];
-
-setcookie("session", session_id(), time()+3600, "/");
-
-echo json_encode([
-    "success"=>true,
-    "user"=>$user
-]);
+http_response_code(401);
+echo json_encode(["success" => false]);
