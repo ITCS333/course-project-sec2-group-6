@@ -1,104 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal</title>
-
-    <script src="manage_users.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <script src="login.js" defer></script>
 </head>
-
 <body>
 
-<header>
-    <h1>Admin Portal</h1>
-</header>
+<form id="login-form">
+  <fieldset>
+    <legend>Login</legend>
 
-<main>
+    <input type="email" id="email" required>
+    <input type="password" id="password" required minlength="8">
 
-<!-- ================= PASSWORD SECTION ================= -->
-<section>
-    <h2>Change Your Password</h2>
+    <button type="submit" id="login">Login</button>
+  </fieldset>
+</form>
 
-    <form id="password-form">
-
-        <fieldset>
-            <legend>Password Update</legend>
-
-            <label for="current-password">Current Password</label>
-            <input type="password" id="current-password" required>
-
-            <label for="new-password">New Password</label>
-            <input type="password" id="new-password" required minlength="8">
-
-            <label for="confirm-password">Confirm Password</label>
-            <input type="password" id="confirm-password" required>
-
-            <button type="submit" id="change">Update Password</button>
-
-        </fieldset>
-
-    </form>
-</section>
-
-<!-- ================= USER SECTION ================= -->
-<section>
-
-    <h2>Manage Users</h2>
-
-    <details>
-        <summary>Add New User</summary>
-
-        <form id="add-user-form">
-
-            <fieldset>
-                <legend>New User Information</legend>
-
-                <label for="user-name">Name</label>
-                <input type="text" id="user-name" required>
-
-                <label for="user-email">Email</label>
-                <input type="email" id="user-email" required>
-
-                <label for="default-password">Password</label>
-                <input type="password" id="default-password" required minlength="8">
-
-                <label for="is-admin">Role</label>
-                <select id="is-admin">
-                    <option value="0">Student</option>
-                    <option value="1">Admin</option>
-                </select>
-
-                <button type="submit" id="add">Add User</button>
-
-            </fieldset>
-
-        </form>
-    </details>
-
-    <h3>Registered Users</h3>
-
-    <input type="text" id="search-input" placeholder="Search by name or email...">
-
-    <table id="user-table">
-
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Admin</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-
-        <tbody id="user-table-body"></tbody>
-
-    </table>
-
-</section>
-
-</main>
+<div id="message-container"></div>
 
 </body>
 </html>
